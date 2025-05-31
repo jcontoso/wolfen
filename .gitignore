@@ -1,1 +1,8 @@
 compile.sh
+wlonx
+a.out
+examples/list_globals
+examples/shm
+examples/shm2
+examples/xdg-shell-*
+examples/shm-xdg
