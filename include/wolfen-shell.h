@@ -18,6 +18,7 @@ typedef struct {
 	
 	struct wl_resource *surface_rc;
 	WolfenSurface *surface;
+	pixman_box32_t *extents;
 	WolfenPixelFmt *fmt_used;
 	Window x_window;
 	GC x_gc;

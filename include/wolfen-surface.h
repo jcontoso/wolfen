@@ -12,6 +12,7 @@
 #define WOLFEN_SURFACE
 
 typedef enum {
+	WOLFEN_SURFACE_PROP_CHANGED_NONE = 0,
     WOLFEN_SURFACE_PROP_CHANGED_BUFFER_SCALE=  1 << 0,
     WOLFEN_SURFACE_PROP_CHANGED_BUFFER_TF = 1 << 1,
     WOLFEN_SURFACE_PROP_CHANGED_FRAME_CB = 1 << 2,
@@ -35,34 +36,42 @@ typedef struct {
 	struct wl_resource *input_region;
 } WolfenSurfaceState;
 
-
-typedef struct {
-
-} WolfenSurfaceImage;
-
 typedef struct _WolfenSurface {
 	WolfenDisplay *display;
 	struct wl_resource *wl_rc_surface;
 	
+	/* state information */
 	WolfenSurfaceState state_buffer;
 	WolfenSurfaceState state;
 	
+	/* viewport and damage areas */
 	pixman_region32_t actual_damage;
 	pixman_region32_t viewport;
 
-	/* move these to their own WolfenSurfaceImage struct */
-	WolfenPixelFmt *fmt;
-	XImage *x_img;
-	void *conversion_buffer;
-	XVisualInfo last_x_img_xvi;
-	long last_x_img_xvi_mask;
-	uint32_t last_wl_fmt;
-	bool last_wl_fmt_set;
-	bool use_last_x_img_xvi;	
+	/* surface contents */
+	union _WolfenSurfaceContents {
+		struct _WolfenSurfaceImage {
+			/* format information */
+			WolfenPixelFmt *fmt;
+			XVisualInfo last_x_img_xvi;
+			long last_x_img_xvi_mask;
+			uint32_t last_wl_fmt;
+			bool last_wl_fmt_set;
+			bool use_last_x_img_xvi;	
 	
+			/* buffer */	
+			XImage *x_img;
+	
+			/* for fmt conversions */
+			void *conversion_buffer;
+		} img;
+	} contents;
+	
+	/* callbacks for other wolfen code */
 	void *commit_cb_data;
 	void (*commit_cb)(struct _WolfenSurface *s, void *d);
 
+	/* wl_list link */
 	struct wl_list link;
 } WolfenSurface;
 

@@ -56,7 +56,7 @@ void *thread_func(void *ptr) {
 	
 	shsurface = (WolfenShellSurface *)ptr;
 	for (;;) {
-		XPutImage(shsurface->display->x_display, shsurface->x_window, shsurface->x_gc, shsurface->surface->x_img, 0, 0, shsurface->surface->state.buffer_x, shsurface->surface->state.buffer_y, shsurface->surface->x_img->width, shsurface->surface->x_img->height);
+		XPutImage(shsurface->display->x_display, shsurface->x_window, shsurface->x_gc, shsurface->surface->contents.img.x_img, 0, 0, shsurface->extents->x1, shsurface->extents->y1, shsurface->extents->x2 - shsurface->extents->x1, shsurface->extents->y2 - shsurface->extents->y1);
 		XFlush(shsurface->display->x_display);
 	}
 	return ptr;
@@ -64,7 +64,6 @@ void *thread_func(void *ptr) {
 
 void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 	if (shsurface->surface && !shsurface->x_created) {
-		pixman_box32_t *extents;
 		XSetWindowAttributes swa;
 		XSizeHints sh;
 		Window root;
@@ -72,8 +71,8 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 		MotifWmHints hints;
 		pthread_t thread;
 		
-		shsurface->fmt_used = shsurface->surface->fmt;
-		extents = pixman_region32_extents(&shsurface->surface->viewport);
+		shsurface->fmt_used = shsurface->surface->contents.img.fmt;
+		shsurface->extents = pixman_region32_extents(&shsurface->surface->viewport);
 		
 		if (shsurface->display->x_screen_default->type == WOLFEN_SCREEN_TYPE_CORE) {
 			root = RootWindow(shsurface->display->x_display, shsurface->display->x_screen_default->screen_number);
@@ -82,18 +81,18 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 		}
 		
 		sh.flags = PMinSize	| PMaxSize;
-		sh.min_width = sh.max_width = extents->x2;
-		sh.min_height = sh.max_height = extents->y2;
+		sh.min_width = sh.max_width = shsurface->extents->x2 - shsurface->extents->x1;
+		sh.min_height = sh.max_height = shsurface->extents->y2 - shsurface->extents->y1;
 		swa.event_mask = ExposureMask;
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = 0;
 		property = XInternAtom(shsurface->display->x_display, "_MOTIF_WM_HINTS", True);
-		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, extents->x2, extents->y2, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWEventMask, &swa);
+		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, sh.min_width, sh.min_height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWEventMask, &swa);
 		shsurface->x_gc = XCreateGC(shsurface->display->x_display, shsurface->x_window, 0, NULL);
 		XChangeProperty(shsurface->display->x_display, shsurface->x_window,property,property,32,PropModeReplace,(unsigned char *)&hints,5);
 		XMapWindow(shsurface->display->x_display, shsurface->x_window);
 		XSetWMNormalHints(shsurface->display->x_display, shsurface->x_window, &sh);
-		shsurface->surface->use_last_x_img_xvi = true;
+		shsurface->surface->contents.img.use_last_x_img_xvi = true;
 		/* HORRIBLE HACK USED FOR DEMO PURPOSES, WILL NOT BE USED WHEN I GET IMPLEMENT EVENTS */
 		pthread_create(&thread, NULL, thread_func, shsurface);
 

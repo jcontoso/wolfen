@@ -80,13 +80,17 @@ void wolfen_surface_set_buffer_scale(struct wl_client *client, struct wl_resourc
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	WolfenSurface *surface;
-	int xs;
-	int ys;
+	int xs /*scaled buffer x offset */;
+	int ys /*scaled buffer y offset */;
 	
 	surface = (WolfenSurface *)wl_resource_get_user_data(res);
-	surface->state = surface->state_buffer;
-	surface->state_buffer.prop_changed = 0;
 	
+	/* copy over state from buffer */
+	surface->state = surface->state_buffer;
+	surface->state_buffer.prop_changed = WOLFEN_SURFACE_PROP_CHANGED_NONE;	
+	
+	/* damage */
+	pixman_region32_clear(&surface->actual_damage);   
 	xs = surface->state.buffer_x * surface->state.buffer_scale;
 	ys = surface->state.buffer_y * surface->state.buffer_scale;
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_DAMAGE_BUFFER) {
@@ -109,7 +113,8 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	} else {
 		pixman_region32_translate(&surface->actual_damage, ys, xs);
 	}
-
+	
+	/* buffer */
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_BUFFER) {
 		struct wl_shm_buffer *shm_buffer;
 		void *pxdata;
@@ -122,22 +127,22 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 		h = wl_shm_buffer_get_height(shm_buffer);
 	
 		/* UPDATE DATA INSTEAD OF DESTROYING IMAGE? */
-		if (surface->x_img) {
-			XDestroyImage(surface->x_img);
+		if (surface->contents.img.x_img) {
+			XDestroyImage(surface->contents.img.x_img);
 		}
-		if (surface->conversion_buffer) {
-			free(surface->conversion_buffer);
+		if (surface->contents.img.conversion_buffer) {
+			free(surface->contents.img.conversion_buffer);
 		}
 	
-		if (surface->use_last_x_img_xvi) {
-			if (!surface->fmt || (surface->fmt->wl_fmt != surface->last_wl_fmt)) {
-				wolfen_fmt_free(surface->fmt);
-				surface->fmt = wolfen_fmt_from_xvi_for_wl_fmt(surface->display, &surface->last_x_img_xvi, surface->last_x_img_xvi_mask, wl_shm_buffer_get_format(shm_buffer));
+		if (surface->contents.img.use_last_x_img_xvi) {
+			if (!surface->contents.img.fmt || (surface->contents.img.fmt->wl_fmt != surface->contents.img.last_wl_fmt)) {
+				wolfen_fmt_free(surface->contents.img.fmt);
+				surface->contents.img.fmt = wolfen_fmt_from_xvi_for_wl_fmt(surface->display, &surface->contents.img.last_x_img_xvi, surface->contents.img.last_x_img_xvi_mask, wl_shm_buffer_get_format(shm_buffer));
 			}
 		} else {
-			if (surface->fmt) {
-				if ((surface->fmt->wl_fmt != surface->last_wl_fmt) || !surface->last_wl_fmt_set) {
-					wolfen_fmt_free(surface->fmt);
+			if (surface->contents.img.fmt) {
+				if ((surface->contents.img.fmt->wl_fmt != surface->contents.img.last_wl_fmt) || !surface->contents.img.last_wl_fmt_set) {
+					wolfen_fmt_free(surface->contents.img.fmt);
 					goto WOLFEN_SURFACE_CREATE_FMT;
 				}
 			} else {
@@ -150,36 +155,39 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 					screen = DefaultScreen(surface->display->x_display);
 				}			
 				
-				surface->fmt = wolfen_fmt_from_wl_fmt(surface->display, screen, wl_shm_buffer_get_format(shm_buffer));
+				surface->contents.img.fmt = wolfen_fmt_from_wl_fmt(surface->display, screen, wl_shm_buffer_get_format(shm_buffer));
 			}
 		}
 		
-		if(surface->fmt->fish) {
+		if(surface->contents.img.fmt->fish) {
 			int pxcount;
 			
 			pxcount = w * h;
-			surface->conversion_buffer = malloc(pxcount * babl_format_get_bytes_per_pixel(surface->fmt->xvi_babl));
-			babl_process(surface->fmt->fish, wl_shm_buffer_get_data(shm_buffer), surface->conversion_buffer, pxcount);
-			pxdata = surface->conversion_buffer;
+			surface->contents.img.conversion_buffer = malloc(pxcount * babl_format_get_bytes_per_pixel(surface->contents.img.fmt->xvi_babl));
+			babl_process(surface->contents.img.fmt->fish, wl_shm_buffer_get_data(shm_buffer), surface->contents.img.conversion_buffer, pxcount);
+			pxdata = surface->contents.img.conversion_buffer;
 		} else {
 			pxdata = wl_shm_buffer_get_data(shm_buffer);
 		}
-		surface->x_img = XCreateImage(surface->display->x_display, surface->fmt->xvi.visual, surface->fmt->xvi.depth, ZPixmap, 0, pxdata,w, h, 32, wl_shm_buffer_get_stride(shm_buffer));
-		surface->last_x_img_xvi = surface->fmt->xvi;
-		surface->last_x_img_xvi_mask = surface->fmt->xvi_mask;
+		surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, pxdata,w, h, 32, wl_shm_buffer_get_stride(shm_buffer));
+		surface->contents.img.last_x_img_xvi = surface->contents.img.fmt->xvi;
+		surface->contents.img.last_x_img_xvi_mask = surface->contents.img.fmt->xvi_mask;
+		pixman_region32_clear(&surface->viewport);   
 		pixman_region32_init_rect(&surface->viewport, xs, ys, w * surface->state.buffer_scale, h * surface->state.buffer_scale);
 		wl_shm_buffer_end_access(shm_buffer);
 	}
-
+	
+	/* cb */
 	if (surface->commit_cb) {
 		surface->commit_cb(surface, surface->commit_cb_data);
 	}
 	
+	/* buffer 2 */
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_BUFFER) {
-		if (!surface->last_wl_fmt_set) {
-			surface->last_wl_fmt_set = true;
+		if (!surface->contents.img.last_wl_fmt_set) {
+			surface->contents.img.last_wl_fmt_set = true;
 		}
-		surface->last_wl_fmt = surface->fmt->wl_fmt;
+		surface->contents.img.last_wl_fmt = surface->contents.img.fmt->wl_fmt;
 	}
 }
 
