@@ -1,5 +1,3 @@
-#include <pixman.h>
-
 #ifndef WOLFEN_MISC
 #define WOLFEN_MISC
 

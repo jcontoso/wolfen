@@ -3,6 +3,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <wayland-server.h>
+#include <pixman.h>
 #include "wolfen-misc.h"
 #include "wolfen-display.h"
 #include "wolfen-pixfmt.h"
@@ -47,8 +48,7 @@ typedef struct _WolfenSurface {
 	WolfenSurfaceState state;
 	
 	pixman_region32_t actual_damage;
-	int width;
-	int height;
+	pixman_region32_t viewport;
 
 	/* move these to their own WolfenSurfaceImage struct */
 	WolfenPixelFmt *fmt;

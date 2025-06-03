@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wayland-server.h>
+#include <pixman.h>
 #include "wolfen-misc.h"
 #include "wolfen-display.h"
 #include "wolfen-pixfmt.h"
@@ -25,7 +26,7 @@ void wlonx_compositor_create_surface(struct wl_client *client, struct wl_resourc
 	memset(&surface->state.damage_buffer, 0, sizeof(pixman_rectangle32_t));
 	surface->state.buffer_scale = 1;
 	surface->state.buffer_tf = WL_OUTPUT_TRANSFORM_NORMAL;
-	surface->width = surface->height = 0;
+	pixman_region32_init(&surface->viewport);
 	surface->state_buffer = surface->state;
 	surface->wl_rc_surface = wl_resource_create(client, &wl_surface_interface, wl_surface_interface.version, id);
 	wl_resource_set_implementation(surface->wl_rc_surface, &surface->display->surface_imp, surface, &wolfen_surface_delete);

@@ -64,6 +64,7 @@ void *thread_func(void *ptr) {
 
 void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 	if (shsurface->surface && !shsurface->x_created) {
+		pixman_box32_t *extents;
 		XSetWindowAttributes swa;
 		XSizeHints sh;
 		Window root;
@@ -72,6 +73,7 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 		pthread_t thread;
 		
 		shsurface->fmt_used = shsurface->surface->fmt;
+		extents = pixman_region32_extents(&shsurface->surface->viewport);
 		
 		if (shsurface->display->x_screen_default->type == WOLFEN_SCREEN_TYPE_CORE) {
 			root = RootWindow(shsurface->display->x_display, shsurface->display->x_screen_default->screen_number);
@@ -80,13 +82,13 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 		}
 		
 		sh.flags = PMinSize	| PMaxSize;
-		sh.min_width = sh.max_width = shsurface->surface->x_img->width;
-		sh.min_height = sh.max_height = shsurface->surface->x_img->height;
+		sh.min_width = sh.max_width = extents->x2;
+		sh.min_height = sh.max_height = extents->y2;
 		swa.event_mask = ExposureMask;
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = 0;
 		property = XInternAtom(shsurface->display->x_display, "_MOTIF_WM_HINTS", True);
-		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, shsurface->surface->width, shsurface->surface->height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWEventMask, &swa);
+		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, extents->x2, extents->y2, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWEventMask, &swa);
 		shsurface->x_gc = XCreateGC(shsurface->display->x_display, shsurface->x_window, 0, NULL);
 		XChangeProperty(shsurface->display->x_display, shsurface->x_window,property,property,32,PropModeReplace,(unsigned char *)&hints,5);
 		XMapWindow(shsurface->display->x_display, shsurface->x_window);

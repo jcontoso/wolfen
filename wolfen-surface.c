@@ -4,6 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <wayland-server.h>
+#include <pixman.h>
 #include "wolfen-misc.h"
 #include "wolfen-display.h"
 #include "wolfen-pixfmt.h"
@@ -79,11 +80,15 @@ void wolfen_surface_set_buffer_scale(struct wl_client *client, struct wl_resourc
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	WolfenSurface *surface;
-
+	int xs;
+	int ys;
+	
 	surface = (WolfenSurface *)wl_resource_get_user_data(res);
 	surface->state = surface->state_buffer;
 	surface->state_buffer.prop_changed = 0;
-
+	
+	xs = surface->state.buffer_x * surface->state.buffer_scale;
+	ys = surface->state.buffer_y * surface->state.buffer_scale;
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_DAMAGE_BUFFER) {
 		if (surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_270 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_90 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_FLIPPED_90 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_FLIPPED_270) {
 			surface->state.damage_buffer.y = surface->state.damage_buffer.x * surface->state.buffer_scale;		
@@ -100,19 +105,21 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	pixman_region32_init_rect(&surface->actual_damage, surface->state_buffer.damage.x, surface->state_buffer.damage.y, surface->state_buffer.damage.width, surface->state_buffer.damage.height);
 	pixman_region32_union_rect(&surface->actual_damage, &surface->actual_damage, surface->state_buffer.damage_buffer.x, surface->state_buffer.damage_buffer.y, surface->state_buffer.damage_buffer.width, surface->state_buffer.damage_buffer.height);
 	if (surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_270 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_90 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_FLIPPED_90 || surface->state.buffer_tf == WL_OUTPUT_TRANSFORM_FLIPPED_270) {
-		pixman_region32_translate(&surface->actual_damage, surface->state.buffer_x * surface->state.buffer_scale, surface->state.buffer_y * surface->state.buffer_scale);
+		pixman_region32_translate(&surface->actual_damage, xs, ys);
 	} else {
-		pixman_region32_translate(&surface->actual_damage, surface->state.buffer_y * surface->state.buffer_scale, surface->state.buffer_x * surface->state.buffer_scale);
+		pixman_region32_translate(&surface->actual_damage, ys, xs);
 	}
 
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_BUFFER) {
 		struct wl_shm_buffer *shm_buffer;
 		void *pxdata;
-
+		int w;
+		int h;
+		
 		shm_buffer = wl_shm_buffer_get(surface->state.buffer);
 		wl_shm_buffer_begin_access(shm_buffer);
-		surface->width = wl_shm_buffer_get_width(shm_buffer);
-		surface->height = wl_shm_buffer_get_height(shm_buffer);
+		w = wl_shm_buffer_get_width(shm_buffer);
+		h = wl_shm_buffer_get_height(shm_buffer);
 	
 		/* UPDATE DATA INSTEAD OF DESTROYING IMAGE? */
 		if (surface->x_img) {
@@ -150,18 +157,17 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 		if(surface->fmt->fish) {
 			int pxcount;
 			
-			pxcount = surface->width * surface->height;
+			pxcount = w * h;
 			surface->conversion_buffer = malloc(pxcount * babl_format_get_bytes_per_pixel(surface->fmt->xvi_babl));
 			babl_process(surface->fmt->fish, wl_shm_buffer_get_data(shm_buffer), surface->conversion_buffer, pxcount);
 			pxdata = surface->conversion_buffer;
 		} else {
 			pxdata = wl_shm_buffer_get_data(shm_buffer);
 		}
-		surface->x_img = XCreateImage(surface->display->x_display, surface->fmt->xvi.visual, surface->fmt->xvi.depth, ZPixmap, 0, pxdata,surface->width, surface->height, 32, wl_shm_buffer_get_stride(shm_buffer));
+		surface->x_img = XCreateImage(surface->display->x_display, surface->fmt->xvi.visual, surface->fmt->xvi.depth, ZPixmap, 0, pxdata,w, h, 32, wl_shm_buffer_get_stride(shm_buffer));
 		surface->last_x_img_xvi = surface->fmt->xvi;
 		surface->last_x_img_xvi_mask = surface->fmt->xvi_mask;
-		surface->width += surface->state.buffer_x;
-		surface->height += surface->state.buffer_y;
+		pixman_region32_init_rect(&surface->viewport, xs, ys, w * surface->state.buffer_scale, h * surface->state.buffer_scale);
 		wl_shm_buffer_end_access(shm_buffer);
 	}
 
