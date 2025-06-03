@@ -11,6 +11,7 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/Xinerama.h>
 #include <X11/extensions/xf86vmode.h>
+#include <X11/extensions/Xrender.h>
 #include <wayland-server.h>
 #include <babl/babl.h>
 
@@ -140,6 +141,9 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	wlonx->x_has_xinerama = XineramaQueryExtension(wlonx->x_display, &event_base, &error_base);
 	/* used for getting monitor information in non-xrandr and zaphod configurations */
 	wlonx->x_has_vidmode = XF86VidModeQueryExtension(wlonx->x_display, &event_base, &error_base);
+	/* used for hw accelerated buffer tfs */
+	wlonx->x_has_render = XRenderQueryExtension(wlonx->x_display, &event_base, &error_base);
+	wlonx->x_has_render = false; /* for development, no xrender functionality has been implemented yet */
 	
 	/* setup screens */
 	if (wlonx->x_has_xinerama) {

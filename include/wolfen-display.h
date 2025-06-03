@@ -43,6 +43,7 @@ typedef struct _WolfenDisplay {
 	Display *x_display;
     bool x_has_xinerama;
 	bool x_has_vidmode;
+	bool x_has_render;
 	
 	/* X11 OUTPUTS */
 	struct wl_list x_screen_list;

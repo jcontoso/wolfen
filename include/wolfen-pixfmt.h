@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <babl/babl.h>
+#include <pixman.h>
 #include "wolfen-display.h"
 
 #ifndef WOLFEN_PIX_FMT
@@ -17,6 +18,9 @@ typedef struct {
 	 
 	/* wl shm format */
 	uint32_t wl_fmt;
+	
+	/* pixman fmt */
+	pixman_format_code_t pixman_fmt;
 	
 	/* IF THESE ARE NULL NO PIXEL CONVERSION NEEDS TO BE DONE */
 	const Babl *xvi_babl;

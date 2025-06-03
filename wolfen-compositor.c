@@ -24,7 +24,7 @@ void wlonx_compositor_create_surface(struct wl_client *client, struct wl_resourc
 	surface->state.buffer_scale = 1;
 	surface->state.buffer_tf = WL_OUTPUT_TRANSFORM_NORMAL;	
 	surface->state_buffer = surface->state;
-
+	
 	/* init viewport, etc */
 	pixman_region32_init(&surface->viewport);
 	pixman_region32_init(&surface->actual_damage);
@@ -38,6 +38,7 @@ void wlonx_compositor_create_surface(struct wl_client *client, struct wl_resourc
 	surface->contents.img.use_last_x_img_xvi = false;
 	surface->contents.img.last_wl_fmt_set = false;
 	surface->contents.img.fmt = NULL;
+	surface->contents.img.p_img = NULL;
 		
 	/* create wl resource and insert */
 	surface->wl_rc_surface = wl_resource_create(client, &wl_surface_interface, wl_surface_interface.version, id);

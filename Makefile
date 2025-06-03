@@ -9,8 +9,8 @@ PREFIX = /usr/local
 #LDFLAGS =
 
 # for non developers, you probably don't need to touch the below
-CFLAGS += -std=c99 -Wall -c -Wno-deprecated-declarations -Iinclude -g -pthread `pkg-config --cflags pixman-1 wayland-server x11 xinerama xxf86vm babl`
-LDFLAGS += -pthread `pkg-config --libs pixman-1 wayland-server x11 xinerama xxf86vm babl` -lm
+CFLAGS += -std=c99 -Wall -c -Wno-deprecated-declarations -Iinclude -g -pthread `pkg-config --cflags pixman-1 wayland-server x11 xrender xinerama xxf86vm babl`
+LDFLAGS += -pthread `pkg-config --libs pixman-1 wayland-server x11 xinerama xrender xxf86vm babl` -lm
 
 EXECUTABLE = wlonx
 

@@ -166,7 +166,7 @@ const Babl *wolfen_wl2babl(uint32_t wl_fmt) {
 	switch (wl_fmt) {
 		case WL_SHM_FORMAT_XRGB8888:
 		case WL_SHM_FORMAT_ARGB8888:
-				return babl_format_new(babl_model("RGBA"),babl_type("u8"),babl_component("A"), babl_component("R"), babl_component("G"),babl_component("B"), NULL);
+			return babl_format_new(babl_model("RGBA"),babl_type("u8"),babl_component("A"), babl_component("R"), babl_component("G"),babl_component("B"), NULL);
 			break;
 		default:
 			puts("What the heck?!");
@@ -175,6 +175,18 @@ const Babl *wolfen_wl2babl(uint32_t wl_fmt) {
 
 }
 
+pixman_format_code_t wolfen_wl2pixman(uint32_t format) {
+	switch (format) {
+		case WL_SHM_FORMAT_XRGB8888:
+			return PIXMAN_x8r8g8b8;
+		case WL_SHM_FORMAT_ARGB8888:
+			return PIXMAN_a8r8g8b8;
+			break;
+		default:
+			puts("What the heck?!");
+	}
+	return 0;	
+}
 
 WolfenPixelFmt *wolfen_fmt_from_wl_fmt(WolfenDisplay *display, int core_screen, uint32_t format) {
 	WolfenPixelFmt *ret;
@@ -186,6 +198,7 @@ WolfenPixelFmt *wolfen_fmt_from_wl_fmt(WolfenDisplay *display, int core_screen, 
 	ret = malloc(sizeof(WolfenPixelFmt));
 	ret->display = display;
 	ret->wl_fmt = format;
+	ret->pixman_fmt	= wolfen_wl2pixman(format);
 	ret->xvi_babl = ret->wl_babl = ret->fish = NULL;
 	xvis = NULL;
 	looseness = WOLFEN_PIXEL_FMT_VERY_LOOSE;
@@ -228,6 +241,7 @@ WolfenPixelFmt *wolfen_fmt_from_xvi_for_wl_fmt(WolfenDisplay *display, XVisualIn
 	ret = malloc(sizeof(WolfenPixelFmt));
 	ret->display = display;
 	ret->wl_fmt = format;
+	ret->pixman_fmt	= wolfen_wl2pixman(format);
 	ret->xvi_babl = ret->wl_babl = ret->fish = NULL;
 	ret->xvi = *xvi;
 	ret->xvi_mask = xvi_mask;

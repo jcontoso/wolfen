@@ -61,6 +61,7 @@ typedef struct _WolfenSurface {
 	
 			/* buffer */	
 			XImage *x_img;
+			pixman_image_t *p_img; /* USED ONLY FOR BUFFER TFS ON NON XRENDER SETUPS */
 	
 			/* for fmt conversions */
 			void *conversion_buffer;
