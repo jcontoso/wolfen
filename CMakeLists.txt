@@ -6,7 +6,7 @@ include(CMakePushCheckState)
 include(GNUInstallDirs)
 option(TESTS "Build tests" TRUE)
 
-set(CMAKE_C_STANDARD 90)
+set(CMAKE_C_STANDARD 99)
 find_package(PkgConfig REQUIRED)
 
 add_subdirectory(wolfen)
