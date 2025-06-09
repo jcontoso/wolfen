@@ -201,7 +201,7 @@ WolfenPixelFmt *wolfen_fmt_from_wl_fmt(WolfenDisplay *display, int core_screen, 
 	ret->pixman_fmt	= wolfen_wl2pixman(format);
 	ret->xvi_babl = ret->wl_babl = ret->fish = NULL;
 	xvis = NULL;
-	looseness = WOLFEN_PIXEL_FMT_VERY_LOOSE;
+	looseness = WOLFEN_PIXEL_FMT_STRICT;
 	
 	while (!xvis) {
 		WolfenPixelFmtLooseness tlooseness;
@@ -272,6 +272,6 @@ WolfenPixelFmt *wolfen_fmt_from_xvi_for_wl_fmt(WolfenDisplay *display, XVisualIn
 void wolfen_fmt_free(WolfenPixelFmt *fmt) {
 	if (fmt) {
 		free(fmt);
-	
+		babl_gc();
 	}
 }

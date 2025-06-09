@@ -66,6 +66,8 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 	if (shsurface->surface && !shsurface->x_created) {
 		XSetWindowAttributes swa;
 		XSizeHints sh;
+		XColor color;
+		Colormap map;
 		Window root;
 		Atom property;
 		MotifWmHints hints;
@@ -80,14 +82,23 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 			root = RootWindow(shsurface->display->x_display, DefaultScreen(shsurface->display->x_display));
 		}
 		
+		map = XCreateColormap(shsurface->display->x_display, root, shsurface->fmt_used->xvi.visual, AllocNone);
+		color.flags = DoRed|DoGreen|DoBlue;
+		color.red = 0;
+		color.green = 0;
+		color.blue = 0;
+		XAllocColor(shsurface->display->x_display, map, &color);
+			
 		sh.flags = PMinSize	| PMaxSize;
 		sh.min_width = sh.max_width = shsurface->extents->x2 - shsurface->extents->x1;
 		sh.min_height = sh.max_height = shsurface->extents->y2 - shsurface->extents->y1;
 		swa.event_mask = ExposureMask;
+		swa.colormap = map;
+		swa.border_pixel = color.pixel;
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = 0;
 		property = XInternAtom(shsurface->display->x_display, "_MOTIF_WM_HINTS", True);
-		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, sh.min_width, sh.min_height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWEventMask, &swa);
+		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, sh.min_width, sh.min_height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
 		shsurface->x_gc = XCreateGC(shsurface->display->x_display, shsurface->x_window, 0, NULL);
 		XChangeProperty(shsurface->display->x_display, shsurface->x_window,property,property,32,PropModeReplace,(unsigned char *)&hints,5);
 		XMapWindow(shsurface->display->x_display, shsurface->x_window);

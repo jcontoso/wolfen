@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -18,12 +19,39 @@ bool wolfen_surface_needs_transform(WolfenSurface *surface) {
 	}	
 }
 
-void wolfen_surface_delete(struct wl_resource *resource) {
+void wolfen_surface_delete(struct wl_resource *res) {
+	WolfenSurface *surface;
+	
+	surface = (WolfenSurface *)wl_resource_get_user_data(res);	
 
+	pixman_region32_fini(&surface->viewport);
+	pixman_region32_fini(&surface->actual_damage);
+
+
+	if (surface->contents.img.conversion_buffer) {
+		free(surface->contents.img.conversion_buffer);
+	}
+
+	if (surface->contents.img.x_img) {
+		XDestroyImage(surface->contents.img.x_img);
+	}
+
+	if (surface->contents.img.p_img) {
+		pixman_image_unref(surface->contents.img.p_img);
+	}
+	
+	if (surface->contents.img.fmt) {
+		wolfen_fmt_free(surface->contents.img.fmt);
+	}			
+			
+	wl_list_remove(&surface->link);
+	
+	free(surface);
 }
 
 void wolfen_surface_destroy(struct wl_client *client, struct wl_resource *res) {
-	
+	wolfen_surface_delete(res);
+	wl_resource_destroy(res);
 }
 
 void wolfen_surface_attach(struct wl_client *client, struct wl_resource *res, struct wl_resource *buffer, int32_t x, int32_t y) {
@@ -84,6 +112,10 @@ void wolfen_surface_set_buffer_scale(struct wl_client *client, struct wl_resourc
 	surface = (WolfenSurface *)wl_resource_get_user_data(res);
 	surface->state_buffer.prop_changed |= WOLFEN_SURFACE_PROP_CHANGED_BUFFER_SCALE;
 	surface->state_buffer.buffer_scale = scale;
+}
+
+int fake_destroy() {
+	
 }
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
@@ -202,6 +234,7 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 			}
 		
 			surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, data_for_x, w, h, 32, strid);
+			/*surface->contents.img.x_img->f.destroy_image = fake_destroy;*/
 			surface->contents.img.last_x_img_xvi = surface->contents.img.fmt->xvi;
 			surface->contents.img.last_x_img_xvi_mask = surface->contents.img.fmt->xvi_mask;
 		}

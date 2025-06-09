@@ -44,7 +44,7 @@ bool wolfen_test_ask_for_bool(char *message) {
 		printf("\nInvalid!\n");
 		wolfen_test_ask_for_bool(message);
 	} else {
-		if (a == 'Y' || a == 'y') {
+		if (i == 'Y' || i == 'y') {
 			return true;
 		} else {
 			return false;
