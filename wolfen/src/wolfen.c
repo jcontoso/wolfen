@@ -1,4 +1,4 @@
-#define _DEFAULT_SOURCE
+/*#define _DEFAULT_SOURCE*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +12,7 @@
 #include <X11/extensions/Xinerama.h>
 #include <X11/extensions/xf86vmode.h>
 #include <X11/extensions/Xrender.h>
+#include <X11/extensions/shape.h>
 #include <wayland-server.h>
 #include <babl/babl.h>
 
@@ -22,11 +23,29 @@
 #include "wolfen-compositor.h"
 #include "wolfen-shell.h"
 
+bool wolfen_screen_has_compositor(Display *display, int core_screen) {
+	char *atom_name;
+	Atom atom_atom;
+	
+	atom_name = malloc(strlen("_NET_WM_CM_S")+wolfen_digit_count(core_screen)*sizeof(char)+1);
+    sprintf(atom_name, "_NET_WM_CM_S%d", core_screen);
+    atom_atom = XInternAtom(display, atom_name, False);
+    free(atom_name);
+    if (XGetSelectionOwner(display, atom_atom) == None) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
 void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreenInfo *xin_info, int xin_count) {
-	int i;
 	WolfenScreen *first;
+	int i;
+	bool is_compositing;
 	
 	first = NULL;
+	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
+	
 	wlonx->x_screen_count = xin_count;
 	for (i = 0; i < wlonx->x_screen_count; i++) {
 		WolfenScreen *screen;
@@ -40,7 +59,7 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		/* use vidmode to get information for the main screen? */
 		screen->vendor = WOLFEN_SCREEN_VENDOR;
 		screen->vendor_free_func = NULL;
-		screen->model = calloc(strlen(WOLFEN_SCREEN_MODEL_XINERAMA)+wolfen_digit_count(xin_info[i].screen_number)+1, sizeof(char));
+		screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_XINERAMA)+wolfen_digit_count(xin_info[i].screen_number)+1);
 		if (screen->model) {
 			sprintf(screen->model, WOLFEN_SCREEN_MODEL_XINERAMA, xin_info[i].screen_number);
 			screen->model_free_func = free;
@@ -54,6 +73,7 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->y_org = xin_info[i].y_org;
 		screen->width = xin_info[i].width;
 		screen->height = xin_info[i].height;
+		screen->is_compositing = is_compositing;
 		
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}
@@ -91,7 +111,7 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			screen->vendor_free_func = NULL;
 		
 			if (i == DefaultScreen(wlonx->x_display)) {
-				screen->model = calloc(strlen(WOLFEN_SCREEN_MODEL_CORE_DEFAULT)+wolfen_digit_count(i)+1, sizeof(char));
+				screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_CORE_DEFAULT)+wolfen_digit_count(i)*sizeof(char)+1);
 				if (screen->model) {
 					sprintf(screen->model, WOLFEN_SCREEN_MODEL_CORE_DEFAULT, i);
 					screen->model_free_func = free;
@@ -99,7 +119,7 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 					goto CALLOC_FAIL;
 				}		
 			} else {
-				screen->model = calloc(strlen(WOLFEN_SCREEN_MODEL_CORE)+wolfen_digit_count(i)+1, sizeof(char));
+				screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_CORE)+wolfen_digit_count(i)*sizeof(char)+1);
 				if (screen->model) {
 					sprintf(screen->model, WOLFEN_SCREEN_MODEL_CORE, i);
 					screen->model_free_func = free;
@@ -116,6 +136,7 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 		screen->y_org = 0;
 		screen->width = DisplayWidth(wlonx->x_display, i);
 		screen->height = DisplayHeight(wlonx->x_display, i);
+		screen->is_compositing = wolfen_screen_has_compositor(wlonx->x_display, i);
 		
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}
@@ -144,6 +165,8 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	/* used for hw accelerated buffer tfs */
 	wlonx->x_has_render = XRenderQueryExtension(wlonx->x_display, &event_base, &error_base);
 	wlonx->x_has_render = false; /* for development, no xrender functionality has been implemented yet */
+	/* used for transparency if you have no compositor running */
+	wlonx->x_has_shape = XShapeQueryExtension(wlonx->x_display, &event_base, &error_base); 
 	
 	/* setup screens */
 	if (wlonx->x_has_xinerama) {

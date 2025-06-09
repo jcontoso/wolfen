@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <babl/babl.h>
@@ -18,6 +19,7 @@ typedef struct {
 	 
 	/* wl shm format */
 	uint32_t wl_fmt;
+	bool wl_fmt_has_transparency;
 	
 	/* pixman fmt */
 	pixman_format_code_t pixman_fmt;
@@ -31,5 +33,7 @@ typedef struct {
 WolfenPixelFmt *wolfen_fmt_from_wl_fmt(WolfenDisplay *display, int core_screen, uint32_t format);
 WolfenPixelFmt *wolfen_fmt_from_xvi_for_wl_fmt(WolfenDisplay *display, XVisualInfo *xvi, long xvi_mask, uint32_t format);
 void wolfen_fmt_free(WolfenPixelFmt *fmt);
+
+bool wolfen_wl_fmt_has_transparency(uint32_t wl_fmt);
 
 #endif

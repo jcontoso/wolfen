@@ -118,6 +118,33 @@ int fake_destroy() {
 	
 }
 
+Pixmap wolfen_surface_generate_bitmap_from_alpha_of_image(WolfenSurface *surface) {
+	Pixmap ret;
+	char *data;
+	int size;
+	int x;
+	int y;	
+	int c;	
+	mask = malloc(sizeof(WolfenSurfaceMask));
+	size = (surface->contents.img.x_img->width + surface->contents.img.x_img->height + 7) & (-8);
+	mask->data = calloc(size, sizeof(data));
+	
+	wl_shm_buffer_begin_access(surface->contents.img.shm_buffer);
+	for (y = 0; y < surface->contents.img.x_img->height; ++y) {
+		char value;
+		
+		value = 0;
+		for (x = 0; x < surface->contents.img.x_img->width; ++x) {
+			if (((surface->contents.img.x_img->data[x * surface->contents.img.x_img->width + y]  >> 32) & 0xFF) > 0) {
+				N ^= 1 << x
+
+		
+			}
+		}	
+    }
+	wl_shm_buffer_end_access(shm_buffer);
+}
+
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	WolfenSurface *surface;
 	int xs /*scaled buffer x offset */;
@@ -156,18 +183,17 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	
 	/* buffer */
 	if (surface->state.prop_changed & WOLFEN_SURFACE_PROP_CHANGED_BUFFER) {
-		struct wl_shm_buffer *shm_buffer;
 		void *data_src;
 		void *data_for_x;
 		int w;
 		int h;
 		int strid;
 		
-		shm_buffer = wl_shm_buffer_get(surface->state.buffer);
-		wl_shm_buffer_begin_access(shm_buffer);
-		w = wl_shm_buffer_get_width(shm_buffer);
-		h = wl_shm_buffer_get_height(shm_buffer);
-		strid = wl_shm_buffer_get_stride(shm_buffer);
+		surface->contents.img.shm_buffer = wl_shm_buffer_get(surface->state.buffer);
+		wl_shm_buffer_begin_access(surface->contents.img.shm_buffer);
+		w = wl_shm_buffer_get_width(surface->contents.img.shm_buffer);
+		h = wl_shm_buffer_get_height(surface->contents.img.shm_buffer);
+		strid = wl_shm_buffer_get_stride(surface->contents.img.shm_buffer);
 		
 		/* UPDATE DATA INSTEAD OF DESTROYING IMAGE? */
 		if (surface->contents.img.x_img) {
@@ -181,7 +207,7 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 		if (surface->contents.img.use_last_x_img_xvi) {
 			if (!surface->contents.img.fmt || (surface->contents.img.fmt->wl_fmt != surface->contents.img.last_wl_fmt)) {
 				wolfen_fmt_free(surface->contents.img.fmt);
-				surface->contents.img.fmt = wolfen_fmt_from_xvi_for_wl_fmt(surface->display, &surface->contents.img.last_x_img_xvi, surface->contents.img.last_x_img_xvi_mask, wl_shm_buffer_get_format(shm_buffer));
+				surface->contents.img.fmt = wolfen_fmt_from_xvi_for_wl_fmt(surface->display, &surface->contents.img.last_x_img_xvi, surface->contents.img.last_x_img_xvi_mask, wl_shm_buffer_get_format(surface->contents.img.shm_buffer));
 			}
 		} else {
 			if (surface->contents.img.fmt) {
@@ -199,7 +225,7 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 					screen = DefaultScreen(surface->display->x_display);
 				}			
 				
-				surface->contents.img.fmt = wolfen_fmt_from_wl_fmt(surface->display, screen, wl_shm_buffer_get_format(shm_buffer));
+				surface->contents.img.fmt = wolfen_fmt_from_wl_fmt(surface->display, screen, wl_shm_buffer_get_format(surface->contents.img.shm_buffer));
 			}
 		}
 					
@@ -213,13 +239,13 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 				pixman_transform_t pixman_tf;
 				
 				pixman_transform_init_scale(&pixman_tf, surface->state.buffer_scale, surface->state.buffer_scale);       
-				surface->contents.img.p_img = pixman_image_create_bits_no_clear(surface->contents.img.fmt->pixman_fmt, w, h, wl_shm_buffer_get_data(shm_buffer), strid);
+				surface->contents.img.p_img = pixman_image_create_bits_no_clear(surface->contents.img.fmt->pixman_fmt, w, h, wl_shm_buffer_get_data(surface->contents.img.shm_buffer), strid);
 				pixman_image_set_transform(surface->contents.img.p_img, &pixman_tf);
 				data_src = pixman_image_get_data(surface->contents.img.p_img); 
 				w = pixman_image_get_width(surface->contents.img.p_img);                     
 				h = pixman_image_get_height(surface->contents.img.p_img);                     
 			} else {
-				data_src = wl_shm_buffer_get_data(shm_buffer);
+				data_src = wl_shm_buffer_get_data(surface->contents.img.shm_buffer);
 			}
 			
 			if(surface->contents.img.fmt->fish) {

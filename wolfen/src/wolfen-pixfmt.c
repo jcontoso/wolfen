@@ -175,6 +175,20 @@ const Babl *wolfen_wl2babl(uint32_t wl_fmt) {
 
 }
 
+bool wolfen_wl_fmt_has_transparency(uint32_t wl_fmt) {
+	switch (wl_fmt) {
+		case WL_SHM_FORMAT_ARGB8888:
+			return true;
+			break;
+		case WL_SHM_FORMAT_XRGB8888:
+			return false;
+			break;
+		default:
+			puts("What the heck?!");
+	}
+	return false;
+}
+
 pixman_format_code_t wolfen_wl2pixman(uint32_t format) {
 	switch (format) {
 		case WL_SHM_FORMAT_XRGB8888:
@@ -200,6 +214,7 @@ WolfenPixelFmt *wolfen_fmt_from_wl_fmt(WolfenDisplay *display, int core_screen, 
 	ret->wl_fmt = format;
 	ret->pixman_fmt	= wolfen_wl2pixman(format);
 	ret->xvi_babl = ret->wl_babl = ret->fish = NULL;
+	ret->wl_fmt_has_transparency = wolfen_wl_fmt_has_transparency(format);
 	xvis = NULL;
 	looseness = WOLFEN_PIXEL_FMT_STRICT;
 	
@@ -246,6 +261,7 @@ WolfenPixelFmt *wolfen_fmt_from_xvi_for_wl_fmt(WolfenDisplay *display, XVisualIn
 	ret->xvi = *xvi;
 	ret->xvi_mask = xvi_mask;
 	conv_needed = true;
+	ret->wl_fmt_has_transparency = wolfen_wl_fmt_has_transparency(format);
 	
 	switch (ret->wl_fmt) {
 		case WL_SHM_FORMAT_XRGB8888:

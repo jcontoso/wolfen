@@ -35,6 +35,8 @@ typedef struct {
 	int width;
 	int height;
 	
+	bool is_compositing;
+	
 	struct wl_list link;
 } WolfenScreen;
 
@@ -44,6 +46,7 @@ typedef struct _WolfenDisplay {
     bool x_has_xinerama;
 	bool x_has_vidmode;
 	bool x_has_render;
+	bool x_has_shape;
 	
 	/* X11 OUTPUTS */
 	struct wl_list x_screen_list;

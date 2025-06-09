@@ -60,6 +60,7 @@ typedef struct _WolfenSurface {
 			bool use_last_x_img_xvi;	
 	
 			/* buffer */	
+			struct wl_shm_buffer *shm_buffer;
 			XImage *x_img;
 			pixman_image_t *p_img; /* USED ONLY FOR BUFFER TFS ON NON XRENDER SETUPS */
 	
