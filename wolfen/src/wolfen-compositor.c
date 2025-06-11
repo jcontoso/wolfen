@@ -46,8 +46,49 @@ void wlonx_compositor_create_surface(struct wl_client *client, struct wl_resourc
 	wl_list_insert(&surface->display->surfaces_list, &surface->link);
 }
 
-void wlonx_compositor_create_region(struct wl_client *client, struct wl_resource *resource, uint32_t id) {
+void wlonx_region_delete(struct wl_resource *res) {
+	pixman_region32_t *region;
+	
+	region = (pixman_region32_t *)wl_resource_get_user_data(res);	
 
+	pixman_region32_fini(region);
+	
+	free(region);
+}
+
+void wolfen_region_destroy(struct wl_client *client, struct wl_resource *res) {
+	wlonx_region_delete(res);
+	wl_resource_destroy(res);
+}
+
+void wolfen_region_add(struct wl_client *client, struct wl_resource *res, int32_t x, int32_t y, int32_t width, int32_t height) {
+	pixman_region32_t *region;
+	
+	region = (pixman_region32_t *)wl_resource_get_user_data(res);
+	pixman_region32_union_rect(region, region, x, y, width, height);	
+}
+
+void wolfen_region_subtract(struct wl_client *client, struct wl_resource *res, int32_t x, int32_t y, int32_t width, int32_t height) {
+	pixman_region32_t *region;
+	pixman_region32_t rect;
+	
+	region = (pixman_region32_t *)wl_resource_get_user_data(res);
+	pixman_region32_union_rect(region, region, x, y, width, height);
+	pixman_region32_init_rect(&rect, x, y, width, height);
+	pixman_region32_subtract(region, region, &rect);
+	pixman_region32_fini(&rect);
+}
+
+void wlonx_compositor_create_region(struct wl_client *client, struct wl_resource *resource, uint32_t id) {
+	WolfenDisplay *display;
+	pixman_region32_t *region;
+	struct wl_resource *region_rc;
+	
+	display = wl_resource_get_user_data(resource);
+	region = malloc(sizeof(pixman_region32_t));
+	pixman_region32_init(region);
+	region_rc = wl_resource_create(client, &wl_region_interface, wl_region_interface.version, id);
+	wl_resource_set_implementation(region_rc, &display->region_imp, region, &wlonx_region_delete);
 }
 
 void wlonx_compositor_bind(struct wl_client *client, void *data, uint32_t version, uint32_t id) {

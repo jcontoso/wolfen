@@ -221,6 +221,10 @@ void wlonx_display_create_wl(WolfenDisplay *wlonx) {
 	wlonx->wlshell_surface_imp.set_maximized = wolfen_wlshell_surface_set_maximized;
 	wlonx->wlshell_surface_imp.set_title = wolfen_wlshell_surface_set_title;
 	wlonx->wlshell_surface_imp.set_class = wolfen_wlshell_surface_set_class;
+	
+	wlonx->region_imp.destroy = wolfen_region_destroy;
+	wlonx->region_imp.add = wolfen_region_add;
+	wlonx->region_imp.subtract = wolfen_region_subtract;
 }
 
 void wlonx_display_run(WolfenDisplay *wlonx) {

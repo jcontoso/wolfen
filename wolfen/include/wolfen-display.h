@@ -65,6 +65,7 @@ typedef struct _WolfenDisplay {
 	struct wl_surface_interface surface_imp;
 	struct wl_shell_interface wlshell_imp;
 	struct wl_shell_surface_interface wlshell_surface_imp;
+	struct wl_region_interface region_imp;
 } WolfenDisplay;
 
 #endif
