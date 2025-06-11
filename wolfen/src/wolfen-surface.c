@@ -118,7 +118,9 @@ int fake_destroy() {
 	
 }
 
+
 Pixmap wolfen_surface_generate_bitmap_from_alpha_of_image(WolfenSurface *surface) {
+	#if 0
 	Pixmap ret;
 	char *data;
 	int size;
@@ -130,19 +132,16 @@ Pixmap wolfen_surface_generate_bitmap_from_alpha_of_image(WolfenSurface *surface
 	mask->data = calloc(size, sizeof(data));
 	
 	wl_shm_buffer_begin_access(surface->contents.img.shm_buffer);
-	for (y = 0; y < surface->contents.img.x_img->height; ++y) {
-		char value;
-		
-		value = 0;
+	for (y = 0; y < surface->contents.img.x_img->height; ++y) {		
 		for (x = 0; x < surface->contents.img.x_img->width; ++x) {
 			if (((surface->contents.img.x_img->data[x * surface->contents.img.x_img->width + y]  >> 32) & 0xFF) > 0) {
-				N ^= 1 << x
-
-		
+				puts("yes");
 			}
 		}	
     }
+	/*XCreateBitmapFromData*/
 	wl_shm_buffer_end_access(shm_buffer);
+	#endif
 }
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
@@ -260,12 +259,12 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 			}
 		
 			surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, data_for_x, w, h, 32, strid);
-			/*surface->contents.img.x_img->f.destroy_image = fake_destroy;*/
+			surface->contents.img.x_img->f.destroy_image = fake_destroy; /* look in xlib to see what the hell xdestroyimage actually does */
 			surface->contents.img.last_x_img_xvi = surface->contents.img.fmt->xvi;
 			surface->contents.img.last_x_img_xvi_mask = surface->contents.img.fmt->xvi_mask;
 		}
 
-		wl_shm_buffer_end_access(shm_buffer);
+		wl_shm_buffer_end_access(surface->contents.img.shm_buffer);
 	}
 	
 	/* cb */

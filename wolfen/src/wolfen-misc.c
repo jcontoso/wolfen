@@ -4,7 +4,11 @@
 #include "wolfen-misc.h"
 
 int wolfen_digit_count(int n) {
-   return floor(log10(abs(n)))+1;
+	if (n) {
+		return floor(log10(abs(n)))+1;
+	} else {
+		return 1;		
+	}
 }
 
 void wolfen_xfree(void *p) {
