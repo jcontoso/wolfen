@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <X11/Xlib.h>
 #include <X11/Xlib.h>
@@ -13,6 +14,7 @@
 #include "motif-util.h"
 
 void wolfen_wlshell_surface_pong(struct wl_client *client, struct wl_resource *resource, uint32_t serial) {
+
 	
 }
 void wolfen_wlshell_surface_move(struct wl_client *client, struct wl_resource *resource, struct wl_resource *seat, uint32_t serial) {
@@ -24,7 +26,12 @@ void wolfen_wlshell_surface_resize(struct wl_client *client, struct wl_resource 
 }	 
       
 void wolfen_wlshell_surface_set_toplevel(struct wl_client *client, struct wl_resource *resource) {
+	WolfenShellSurface *shsurface;
 	
+	shsurface = (WolfenShellSurface *)wl_resource_get_user_data(resource);	
+	if (shsurface->type) {
+		shsurface->type = WOLFEN_SHELL_SURFACE_TYPE_TOPLEVEL;
+	}
 }
 
 void wolfen_wlshell_surface_set_transient(struct wl_client *client, struct wl_resource *resource, struct wl_resource *parent, int32_t x, int32_t y, uint32_t flags) {
@@ -44,11 +51,20 @@ void wolfen_wlshell_surface_set_maximized(struct wl_client *client, struct wl_re
 }
 
 void wolfen_wlshell_surface_set_title(struct wl_client *client, struct wl_resource *resource, const char *title) {
+	WolfenShellSurface *shsurface;
 	
+	shsurface = (WolfenShellSurface *)wl_resource_get_user_data(resource);	
+	if(!shsurface->type) {
+		return;
+	}	
+	
+	XStoreName(shsurface->display->x_display, shsurface->x_window, title);
+    XSetIconName(shsurface->display->x_display, shsurface->x_window, title);		
+    XChangeProperty(shsurface->display->x_display, shsurface->x_window, XInternAtom(shsurface->display->x_display, "_NET_WM_NAME", False), XInternAtom(shsurface->display->x_display, "UTF8_STRING", False), 8, PropModeReplace, (unsigned char *)title, strlen(title)); 
 }
 
 void wolfen_wlshell_surface_set_class(struct wl_client *client, struct wl_resource *resource, const char *klass) {
-	
+
 }
 
 void *thread_func(void *ptr) {
@@ -62,8 +78,8 @@ void *thread_func(void *ptr) {
 	return ptr;
 }
 
-void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
-	if (shsurface->surface && !shsurface->x_created) {
+void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
+	if (shsurface->surface && !shsurface->type) {
 		XSetWindowAttributes swa;
 		XSizeHints sh;
 		XColor color;
@@ -107,7 +123,7 @@ void wolfen_wlshell_surface_create_x(WolfenShellSurface *shsurface) {
 		/* HORRIBLE HACK USED FOR DEMO PURPOSES, WILL NOT BE USED WHEN I GET IMPLEMENT EVENTS */
 		pthread_create(&thread, NULL, thread_func, shsurface);
 
-		shsurface->x_created = true;
+		shsurface->type = WOLFEN_SHELL_SURFACE_TYPE_JUST_CREATED;
 	}
 }
 
@@ -115,7 +131,7 @@ void wolfen_wlshell_surface_on_commit(WolfenSurface *surface, void *udata) {
 	WolfenShellSurface *shsurface;
 	
 	shsurface = (WolfenShellSurface *)udata;
-	wolfen_wlshell_surface_create_x(shsurface);
+	wolfen_wlshell_surface_create_x11(shsurface);
 }
 
 void wolfen_wlshell_get_shell_surface(struct wl_client *client, struct wl_resource *resource, uint32_t id, struct wl_resource *surface) {
@@ -127,7 +143,8 @@ void wolfen_wlshell_get_shell_surface(struct wl_client *client, struct wl_resour
 	shsurface->surface = wl_resource_get_user_data(shsurface->surface_rc);
 	shsurface->surface->commit_cb = wolfen_wlshell_surface_on_commit;
 	shsurface->surface->commit_cb_data = shsurface;
-	
+	shsurface->type = WOLFEN_SHELL_SURFACE_TYPE_NONE;
+
 	shsurface->rc = wl_resource_create(client, &wl_shell_surface_interface, wl_shell_surface_interface.version, id);
 	wl_resource_set_implementation(shsurface->rc, &shsurface->display->wlshell_surface_imp, shsurface, NULL);
 	wl_list_insert(&shsurface->display->shell_surfaces_list, &shsurface->link);

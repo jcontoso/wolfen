@@ -11,19 +11,23 @@
 #ifndef WOLFEN_SHELL
 #define WOLFEN_SHELL
 
+typedef enum {
+	WOLFEN_SHELL_SURFACE_TYPE_NONE = 0,
+	WOLFEN_SHELL_SURFACE_TYPE_JUST_CREATED,
+	WOLFEN_SHELL_SURFACE_TYPE_TOPLEVEL,
+	WOLFEN_SHELL_SURFACE_TYPE_POPUP
+} WolfenShellSurfaceType;
+
 typedef struct {
 	WolfenDisplay *display;
-	
+	WolfenShellSurfaceType type;
 	struct wl_resource *rc;
-	
 	struct wl_resource *surface_rc;
 	WolfenSurface *surface;
 	pixman_box32_t *extents;
-	WolfenPixelFmt *fmt_used;
+	WolfenPixelFmt *fmt_used; /* SHM */
 	Window x_window;
 	GC x_gc;
-	bool x_created;
-	
 	struct wl_list link;
 } WolfenShellSurface;
 

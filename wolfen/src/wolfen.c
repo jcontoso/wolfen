@@ -165,7 +165,7 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	/* used for hw accelerated buffer tfs */
 	wlonx->x_has_render = XRenderQueryExtension(wlonx->x_display, &event_base, &error_base);
 	wlonx->x_has_render = false; /* for development, no xrender functionality has been implemented yet */
-	/* used for transparency if you have no compositor running */
+	/* used for "transparency" if you have no compositor running */
 	wlonx->x_has_shape = XShapeQueryExtension(wlonx->x_display, &event_base, &error_base); 
 	
 	/* setup screens */
