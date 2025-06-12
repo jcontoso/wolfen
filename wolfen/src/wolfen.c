@@ -1,4 +1,3 @@
-/*#define _DEFAULT_SOURCE*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,9 +8,10 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrender.h>
+#include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xinerama.h>
 #include <X11/extensions/xf86vmode.h>
-#include <X11/extensions/Xrender.h>
 #include <X11/extensions/shape.h>
 #include <wayland-server.h>
 #include <babl/babl.h>
@@ -57,16 +57,16 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->type = WOLFEN_SCREEN_TYPE_XINERAMA;
 		
 		/* use vidmode to get information for the main screen? */
-		screen->vendor = WOLFEN_SCREEN_VENDOR;
-		screen->vendor_free_func = NULL;
-		screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_XINERAMA)+wolfen_digit_count(xin_info[i].screen_number)+1);
-		if (screen->model) {
-			sprintf(screen->model, WOLFEN_SCREEN_MODEL_XINERAMA, xin_info[i].screen_number);
-			screen->model_free_func = free;
-		} else {
-			screen->model = WOLFEN_SCREEN_MODEL_UNKNOWN;
-			screen->model_free_func = NULL;		
-		}
+		screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(xin_info[i].screen_number)+1);
+		sprintf(screen->name, WOLFEN_SCREEN_NAME, xin_info[i].screen_number);
+		screen->name_free_func = free;
+		
+		screen->make = WOLFEN_SCREEN_MAKE_NAME;
+		screen->make_free_func = NULL;
+		
+		screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_NAME)+wolfen_digit_count(xin_info[i].screen_number)+1);
+		sprintf(screen->model, WOLFEN_SCREEN_MODEL_NAME, xin_info[i].screen_number);
+		screen->model_free_func = free;
 		
 		screen->screen_number = xin_info[i].screen_number;
 		screen->x_org = xin_info[i].x_org;
@@ -74,9 +74,68 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->width = xin_info[i].width;
 		screen->height = xin_info[i].height;
 		screen->is_compositing = is_compositing;
-		
+		/* oh well, use Display*MM instead maybe? */
+		screen->widthmm = xin_info[i].width;
+		screen->heightmm = xin_info[i].height;
+				
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}
+	wlonx->x_screen_default = first;
+}
+
+void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
+	XRRScreenResources *screen_res;
+	WolfenScreen *first;
+	int i;
+	bool is_compositing;
+	
+	/* is there a way of getting the default monitor on xrandr? the header has nothing? */
+	first = NULL;
+	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
+	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));
+	
+	for (i = 0; i < screen_res->noutput; i++) {
+		XRROutputInfo *out_info;
+	
+		out_info = XRRGetOutputInfo(wlonx->x_display, screen_res, screen_res->outputs[i]);	
+	
+		if (out_info->connection == RR_Connected) {
+			XRRCrtcInfo *crtc_info;
+			WolfenScreen *screen;
+
+			crtc_info = XRRGetCrtcInfo(wlonx->x_display, screen_res, out_info->crtc);
+
+			screen = malloc(sizeof(WolfenScreen));
+			if (!first) {
+				first = screen;
+			}
+			screen->type = WOLFEN_SCREEN_TYPE_XRANDR;
+			
+			screen->name = strndup(out_info->name, out_info->nameLen);
+			screen->name_free_func = free;
+			
+			/* grab edid and parse it ourselves to get these, see xrandr util src */
+			screen->make = "";
+			screen->make_free_func = NULL;
+			screen->model = "";
+			screen->model_free_func = NULL;
+	
+			screen->screen_number = i;
+			screen->x_org = crtc_info->x;
+			screen->y_org = crtc_info->y;
+			screen->width = crtc_info->width;
+			screen->height = crtc_info->height;
+			screen->is_compositing = wolfen_screen_has_compositor(wlonx->x_display, i);
+			screen->widthmm = out_info->mm_width;
+			screen->heightmm = out_info->mm_width;
+										
+			wl_list_insert(&wlonx->x_screen_list, &screen->link);	
+			XRRFreeCrtcInfo(crtc_info);
+		}
+		
+		XRRFreeOutputInfo(out_info);
+	}
+	
 	wlonx->x_screen_default = first;
 }
 
@@ -99,36 +158,30 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			
 			XF86VidModeGetMonitor(wlonx->x_display, i, &vm_mon);
 			
-			screen->vendor = vm_mon.vendor;
-			screen->vendor_free_func = wolfen_xfree;
+			screen->make = vm_mon.vendor;
+			screen->make_free_func = wolfen_xfree;
+			
 			screen->model = vm_mon.model;
 			screen->model_free_func = wolfen_xfree;	
+			
+			screen->name = malloc(strlen(vm_mon.vendor) + strlen(vm_mon.model) + 1);
+			strcpy(screen->name, vm_mon.vendor);
+			strcat(screen->name, vm_mon.vendor);
+			screen->name_free_func = free;
 			
 			XFree(vm_mon.hsync);
 			XFree(vm_mon.vsync);		
 		} else {
-			screen->vendor = WOLFEN_SCREEN_VENDOR;
-			screen->vendor_free_func = NULL;
-		
-			if (i == DefaultScreen(wlonx->x_display)) {
-				screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_CORE_DEFAULT)+wolfen_digit_count(i)*sizeof(char)+1);
-				if (screen->model) {
-					sprintf(screen->model, WOLFEN_SCREEN_MODEL_CORE_DEFAULT, i);
-					screen->model_free_func = free;
-				} else {
-					goto CALLOC_FAIL;
-				}		
-			} else {
-				screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_CORE)+wolfen_digit_count(i)*sizeof(char)+1);
-				if (screen->model) {
-					sprintf(screen->model, WOLFEN_SCREEN_MODEL_CORE, i);
-					screen->model_free_func = free;
-				} else {
-					CALLOC_FAIL:
-					screen->model = WOLFEN_SCREEN_MODEL_UNKNOWN;
-					screen->model_free_func = NULL;		
-				}
-			}	
+			screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(i)+1);
+			sprintf(screen->name, WOLFEN_SCREEN_NAME, i);
+			screen->name_free_func = free;
+			
+			screen->make = WOLFEN_SCREEN_MAKE_NAME;
+			screen->make_free_func = NULL;
+			
+			screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_NAME)+wolfen_digit_count(i)+1);
+			sprintf(screen->model, WOLFEN_SCREEN_MODEL_NAME, i);
+			screen->model_free_func = free;			
 		}
 
 		screen->screen_number = i;
@@ -137,6 +190,8 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 		screen->width = DisplayWidth(wlonx->x_display, i);
 		screen->height = DisplayHeight(wlonx->x_display, i);
 		screen->is_compositing = wolfen_screen_has_compositor(wlonx->x_display, i);
+		screen->widthmm = DisplayWidthMM(wlonx->x_display, i);
+		screen->heightmm = DisplayHeightMM(wlonx->x_display, i);
 		
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}
@@ -156,20 +211,26 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	
 	/* connect to x server */
 	wlonx->x_display = XOpenDisplay(NULL);
-	XSynchronize(wlonx->x_display, True);
+	XSynchronize(wlonx->x_display, True); /* debug remove this later */
 
-	/* used for multimonitor */
+	/* used for monitor info in most setups */
+	wlonx->x_has_randr = XRRQueryExtension(wlonx->x_display, &event_base, &error_base);
+	/* used for multimonitor in non-xrandr setups */
 	wlonx->x_has_xinerama = XineramaQueryExtension(wlonx->x_display, &event_base, &error_base);
 	/* used for getting monitor information in non-xrandr and zaphod configurations */
 	wlonx->x_has_vidmode = XF86VidModeQueryExtension(wlonx->x_display, &event_base, &error_base);
+
 	/* used for hw accelerated buffer tfs */
 	wlonx->x_has_render = XRenderQueryExtension(wlonx->x_display, &event_base, &error_base);
 	wlonx->x_has_render = false; /* for development, no xrender functionality has been implemented yet */
+	
 	/* used for "transparency" if you have no compositor running */
 	wlonx->x_has_shape = XShapeQueryExtension(wlonx->x_display, &event_base, &error_base); 
 	
 	/* setup screens */
-	if (wlonx->x_has_xinerama) {
+	if (wlonx->x_has_randr) {
+		wolfen_display_create_screens_xrandr(wlonx);
+	} else if (wlonx->x_has_xinerama) {
 		if (XineramaIsActive(wlonx->x_display)) {
 			xin_info = XineramaQueryScreens(wlonx->x_display, &xin_count);
 			if (xin_count > 1) {

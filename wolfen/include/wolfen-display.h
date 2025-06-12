@@ -6,12 +6,10 @@
 #ifndef WOLFEN_DISPLAY
 #define WOLFEN_DISPLAY
 
-#define WOLFEN_SCREEN_VENDOR "WLonX/Wolfen"
-#define WOLFEN_SCREEN_MODEL_CORE "Core/Zaphod Screen %d"
-#define WOLFEN_SCREEN_MODEL_CORE_DEFAULT "Core/Zaphod Screen %d (Default)"
-#define WOLFEN_SCREEN_MODEL_XINERAMA "Xinerama Screen %d"
-#define WOLFEN_SCREEN_MODEL_UNKNOWN "Screen"
-	
+#define WOLFEN_SCREEN_NAME "WLonX/Wolfen Screen %d"
+#define WOLFEN_SCREEN_MAKE_NAME "WLonX/Wolfen"
+#define WOLFEN_SCREEN_MODEL_NAME "Screen %d"
+
 typedef enum {
 	WOLFEN_SCREEN_TYPE_CORE,
 	WOLFEN_SCREEN_TYPE_XINERAMA,
@@ -23,18 +21,22 @@ typedef struct {
 	
 	WolfenScreenType type;
 	
-	char *vendor;
+	char *name;
+	void (*name_free_func)(void *p); /* DO NOT EXECUTE IF NULL */
+	char *make;
+	void (*make_free_func)(void *p); /* DO NOT EXECUTE IF NULL */
 	char *model;
-	/* DO NOT EXECUTE IF NULL */
-	void (*vendor_free_func)(void *p);
-	void (*model_free_func)(void *p);
+	void (*model_free_func)(void *p); /* DO NOT EXECUTE IF NULL */
+
 	
 	int screen_number; /* multi monitor mode dependent */
 	int x_org;
 	int y_org;
 	int width;
 	int height;
-	
+	int widthmm;
+	int heightmm;
+		
 	bool is_compositing;
 	
 	struct wl_list link;
@@ -47,6 +49,7 @@ typedef struct _WolfenDisplay {
 	bool x_has_vidmode;
 	bool x_has_render;
 	bool x_has_shape;
+	bool x_has_randr;
 	
 	/* X11 OUTPUTS */
 	struct wl_list x_screen_list;
