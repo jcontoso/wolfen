@@ -27,12 +27,12 @@ void wolfen_surface_delete(struct wl_resource *res) {
 	pixman_region32_fini(&surface->viewport);
 	pixman_region32_fini(&surface->actual_damage);
 
-
 	if (surface->contents.img.conversion_buffer) {
 		free(surface->contents.img.conversion_buffer);
 	}
 
 	if (surface->contents.img.x_img) {
+		surface->contents.img.x_img->data = NULL;
 		XDestroyImage(surface->contents.img.x_img);
 	}
 
@@ -251,7 +251,6 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 			}
 		
 			surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, data_for_x, w, h, 32, strid);
-			surface->contents.img.x_img->f.destroy_image = fake_destroy; /* look in xlib to see what the hell xdestroyimage actually does */
 			surface->contents.img.last_x_img_xvi = surface->contents.img.fmt->xvi;
 			surface->contents.img.last_x_img_xvi_mask = surface->contents.img.fmt->xvi_mask;
 		}

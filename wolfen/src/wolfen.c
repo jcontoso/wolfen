@@ -70,7 +70,7 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->type = WOLFEN_SCREEN_TYPE_XINERAMA;
 		
 		/* use vidmode to get information for the main screen? */
-		screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(xin_info[i].screen_number)+1);
+		screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(xin_info[i].screen_number)*sizeof(char)+1);
 		sprintf(screen->name, WOLFEN_SCREEN_NAME, xin_info[i].screen_number);
 		screen->name_free_func = free;
 		
@@ -291,11 +291,11 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			if (vm_mon.vendor) {
 				screen->make = vm_mon.vendor;
 				screen->make_free_func = wolfen_xfree;				
-				
 			} else {
 				screen->make = WOLFEN_SCREEN_MAKE_NAME;
 				screen->make_free_func = NULL;
 			}
+			
 			if (vm_mon.model) {
 				screen->model = vm_mon.model;
 				screen->model_free_func = wolfen_xfree;		
@@ -304,14 +304,14 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 				screen->model_free_func = NULL;
 			}
 			
-			screen->name = malloc(strlen(screen->make) + 1 + strlen(screen->model) + 2 + wolfen_digit_count(i) + 2);
+			screen->name = malloc(strlen(screen->make) + 1 + strlen(screen->model) + 2 + wolfen_digit_count(i)*sizeof(char) + 2);
 			sprintf(screen->name, "%s %s (%d)", screen->make, screen->model, i);
 			screen->name_free_func = free;
 			
 			XFree(vm_mon.hsync);
 			XFree(vm_mon.vsync);		
 		} else {
-			screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(i)+1);
+			screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(i)*sizeof(char)+1);
 			sprintf(screen->name, WOLFEN_SCREEN_NAME, i);
 			screen->name_free_func = free;
 			
