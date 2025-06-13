@@ -215,16 +215,8 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 					goto WOLFEN_SURFACE_CREATE_FMT;
 				}
 			} else {
-				WOLFEN_SURFACE_CREATE_FMT:
-				int screen;
-	
-				if (surface->display->x_screen_default->type == WOLFEN_SCREEN_TYPE_CORE) {
-					screen = surface->display->x_screen_default->screen_number;
-				} else {
-					screen = DefaultScreen(surface->display->x_display);
-				}			
-				
-				surface->contents.img.fmt = wolfen_fmt_from_wl_fmt(surface->display, screen, wl_shm_buffer_get_format(surface->contents.img.shm_buffer));
+				WOLFEN_SURFACE_CREATE_FMT:				
+				surface->contents.img.fmt = wolfen_fmt_from_wl_fmt(surface->display, wolfen_screen_get_core_screen(surface->display->x_screen_default), wl_shm_buffer_get_format(surface->contents.img.shm_buffer));
 			}
 		}
 					

@@ -36,11 +36,15 @@ typedef struct {
 	int height;
 	int widthmm;
 	int heightmm;
+	enum wl_output_transform tf;
+	enum wl_output_subpixel sp;
 		
 	bool is_compositing;
 	
 	struct wl_list link;
 } WolfenScreen;
+
+int wolfen_screen_get_core_screen(WolfenScreen *screen);
 
 typedef struct _WolfenDisplay {
 	/* X11 DISPLAY */

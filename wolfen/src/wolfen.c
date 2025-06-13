@@ -38,6 +38,14 @@ bool wolfen_screen_has_compositor(Display *display, int core_screen) {
 	}
 }
 
+int wolfen_screen_get_core_screen(WolfenScreen *screen) {
+	if (screen->type == WOLFEN_SCREEN_TYPE_CORE) {
+		return screen->screen_number;
+	} else {
+		return DefaultScreen(screen->display->x_display);
+	}		
+}
+
 void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreenInfo *xin_info, int xin_count) {
 	WolfenScreen *first;
 	int i;
@@ -74,10 +82,12 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->width = xin_info[i].width;
 		screen->height = xin_info[i].height;
 		screen->is_compositing = is_compositing;
+		screen->sp = WL_OUTPUT_SUBPIXEL_UNKNOWN;
+		screen->tf = WL_OUTPUT_TRANSFORM_NORMAL;
 		/* oh well, use Display*MM instead maybe? */
 		screen->widthmm = xin_info[i].width;
 		screen->heightmm = xin_info[i].height;
-				
+						
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}
 	wlonx->x_screen_default = first;
@@ -125,12 +135,63 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			screen->y_org = crtc_info->y;
 			screen->width = crtc_info->width;
 			screen->height = crtc_info->height;
-			screen->is_compositing = wolfen_screen_has_compositor(wlonx->x_display, i);
+			screen->is_compositing = is_compositing;
 			screen->widthmm = out_info->mm_width;
 			screen->heightmm = out_info->mm_width;
-										
-			wl_list_insert(&wlonx->x_screen_list, &screen->link);	
+	
+			switch (out_info->subpixel_order) {
+				case SubPixelHorizontalRGB:
+					screen->sp = WL_OUTPUT_SUBPIXEL_HORIZONTAL_RGB;
+					break;
+				case SubPixelHorizontalBGR:
+					screen->sp = WL_OUTPUT_SUBPIXEL_HORIZONTAL_BGR;
+					break;
+				case SubPixelVerticalRGB:
+					screen->sp = WL_OUTPUT_SUBPIXEL_VERTICAL_RGB;
+					break;
+				case SubPixelVerticalBGR:
+					screen->sp = WL_OUTPUT_SUBPIXEL_VERTICAL_BGR;
+					break;
+				case SubPixelNone:
+					screen->sp = WL_OUTPUT_SUBPIXEL_NONE;
+					break;
+				default:
+					screen->sp = WL_OUTPUT_SUBPIXEL_UNKNOWN;
+			}
+
+			switch (crtc_info->rotation) {
+				case RR_Rotate_90:
+					if (crtc_info->rotation & RR_Reflect_X || crtc_info->rotation & RR_Reflect_Y) {
+						screen->tf = WL_OUTPUT_TRANSFORM_FLIPPED_90;
+					} else {
+						screen->tf = WL_OUTPUT_TRANSFORM_90;					
+					}
+					break;
+				case RR_Rotate_180:
+					if (crtc_info->rotation & RR_Reflect_X || crtc_info->rotation & RR_Reflect_Y) {
+						screen->tf = WL_OUTPUT_TRANSFORM_FLIPPED_180;
+					} else {
+						screen->tf = WL_OUTPUT_TRANSFORM_180;					
+					}
+					break;
+				case RR_Rotate_270:
+					if (crtc_info->rotation & RR_Reflect_X || crtc_info->rotation & RR_Reflect_Y) {
+						screen->tf = WL_OUTPUT_TRANSFORM_FLIPPED_270;
+					} else {
+						screen->tf = WL_OUTPUT_TRANSFORM_270;					
+					}
+					break;
+				default:
+					if (crtc_info->rotation & RR_Reflect_X || crtc_info->rotation & RR_Reflect_Y) {
+						screen->tf = WL_OUTPUT_TRANSFORM_NORMAL;
+					} else {
+						screen->tf = WL_OUTPUT_TRANSFORM_FLIPPED;					
+					}
+			}
+															
 			XRRFreeCrtcInfo(crtc_info);
+			
+			wl_list_insert(&wlonx->x_screen_list, &screen->link);	
 		}
 		
 		XRRFreeOutputInfo(out_info);
@@ -140,8 +201,8 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 }
 
 void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
-	int i;
 	WolfenScreen *default_screen;
+	int i;
 
 	wlonx->x_screen_count = ScreenCount(wlonx->x_display);	
 	for (i = 0; i < wlonx->x_screen_count; i++) {
@@ -192,6 +253,8 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 		screen->is_compositing = wolfen_screen_has_compositor(wlonx->x_display, i);
 		screen->widthmm = DisplayWidthMM(wlonx->x_display, i);
 		screen->heightmm = DisplayHeightMM(wlonx->x_display, i);
+		screen->sp = WL_OUTPUT_SUBPIXEL_UNKNOWN;
+		screen->tf = WL_OUTPUT_TRANSFORM_NORMAL;
 		
 		wl_list_insert(&wlonx->x_screen_list, &screen->link);
 	}

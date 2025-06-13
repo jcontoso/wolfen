@@ -84,7 +84,6 @@ void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
 		XSizeHints sh;
 		XColor color;
 		Colormap map;
-		Window root;
 		Atom property;
 		MotifWmHints hints;
 		pthread_t thread;
@@ -92,13 +91,7 @@ void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
 		shsurface->fmt_used = shsurface->surface->contents.img.fmt;
 		shsurface->extents = pixman_region32_extents(&shsurface->surface->viewport);
 		
-		if (shsurface->display->x_screen_default->type == WOLFEN_SCREEN_TYPE_CORE) {
-			root = RootWindow(shsurface->display->x_display, shsurface->display->x_screen_default->screen_number);
-		} else {
-			root = RootWindow(shsurface->display->x_display, DefaultScreen(shsurface->display->x_display));
-		}
-		
-		map = XCreateColormap(shsurface->display->x_display, root, shsurface->fmt_used->xvi.visual, AllocNone);
+		map = XCreateColormap(shsurface->display->x_display, RootWindow(shsurface->display->x_display,  wolfen_screen_get_core_screen(shsurface->display->x_screen_default)), shsurface->fmt_used->xvi.visual, AllocNone);
 		color.flags = DoRed|DoGreen|DoBlue;
 		color.red = 0;
 		color.green = 0;
@@ -114,7 +107,7 @@ void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = 0;
 		property = XInternAtom(shsurface->display->x_display, "_MOTIF_WM_HINTS", True);
-		shsurface->x_window = XCreateWindow(shsurface->display->x_display, root, 0, 0, sh.min_width, sh.min_height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
+		shsurface->x_window = XCreateWindow(shsurface->display->x_display, RootWindow(shsurface->display->x_display,  wolfen_screen_get_core_screen(shsurface->display->x_screen_default)), 0, 0, sh.min_width, sh.min_height, 0, shsurface->fmt_used->xvi.depth, InputOutput, shsurface->fmt_used->xvi.visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
 		shsurface->x_gc = XCreateGC(shsurface->display->x_display, shsurface->x_window, 0, NULL);
 		XChangeProperty(shsurface->display->x_display, shsurface->x_window,property,property,32,PropModeReplace,(unsigned char *)&hints,5);
 		XMapWindow(shsurface->display->x_display, shsurface->x_window);
