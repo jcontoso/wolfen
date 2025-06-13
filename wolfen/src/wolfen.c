@@ -308,8 +308,8 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			sprintf(screen->name, "%s %s (%d)", screen->make, screen->model, i);
 			screen->name_free_func = free;
 			
-			XFree(vm_mon.hsync);
-			XFree(vm_mon.vsync);		
+			wolfen_xfree(vm_mon.hsync);
+			wolfen_xfree(vm_mon.vsync);		
 		} else {
 			screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(i)*sizeof(char)+1);
 			sprintf(screen->name, WOLFEN_SCREEN_NAME, i);
