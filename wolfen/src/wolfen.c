@@ -289,9 +289,8 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			screen->model = vm_mon.model;
 			screen->model_free_func = wolfen_xfree;	
 			
-			screen->name = malloc(strlen(vm_mon.vendor) + strlen(vm_mon.model) + 1);
-			strcpy(screen->name, vm_mon.vendor);
-			strcat(screen->name, vm_mon.vendor);
+			screen->name = malloc(strlen(vm_mon.vendor) + 1 + strlen(vm_mon.model) + 2 + wolfen_digit_count(i) + 2);
+			sprintf(screen->name, "%s %s (%d)", vm_mon.vendor, vm_mon.model, i);
 			screen->name_free_func = free;
 			
 			XFree(vm_mon.hsync);
