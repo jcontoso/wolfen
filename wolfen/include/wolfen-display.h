@@ -6,10 +6,6 @@
 #ifndef WOLFEN_DISPLAY
 #define WOLFEN_DISPLAY
 
-#define WOLFEN_SCREEN_NAME "WLonX/Wolfen Screen %d"
-#define WOLFEN_SCREEN_MAKE_NAME "WLonX/Wolfen"
-#define WOLFEN_SCREEN_MODEL_NAME "Screen %d"
-
 typedef enum {
 	WOLFEN_SCREEN_TYPE_CORE,
 	WOLFEN_SCREEN_TYPE_XINERAMA,

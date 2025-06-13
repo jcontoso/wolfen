@@ -24,6 +24,10 @@
 #include "wolfen-shell.h"
 #include "wolfen-pnp-names.h"
 
+#define WOLFEN_SCREEN_NAME "WLonX/Wolfen Screen %d"
+#define WOLFEN_SCREEN_MAKE_NAME "WLonX/Wolfen"
+#define WOLFEN_SCREEN_MODEL_NAME "Screen"
+
 bool wolfen_screen_has_compositor(Display *display, int core_screen) {
 	char *atom_name;
 	Atom atom_atom;
@@ -73,9 +77,8 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 		screen->make = WOLFEN_SCREEN_MAKE_NAME;
 		screen->make_free_func = NULL;
 		
-		screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_NAME)+wolfen_digit_count(xin_info[i].screen_number)+1);
-		sprintf(screen->model, WOLFEN_SCREEN_MODEL_NAME, xin_info[i].screen_number);
-		screen->model_free_func = free;
+		screen->model = WOLFEN_SCREEN_MODEL_NAME;
+		screen->model_free_func = NULL;
 		
 		screen->screen_number = xin_info[i].screen_number;
 		screen->x_org = xin_info[i].x_org;
@@ -126,6 +129,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
 			
+			goto WOLFEN_XRANDR_INVALID_EDID; /* do not parse edids for now because XRRGetOutputProperty hangs */
 			edid_atom = XInternAtom(wlonx->x_display, RR_PROPERTY_RANDR_EDID, True);
 			if (edid_atom != None) {
 				unsigned char *prop;
@@ -138,7 +142,8 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				int j;
 				char *token;
 
-				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop); /* THIS HANGS ON NETBSD */
+				/* THIS HANGS ON SYSTEMS WITH VALID EDIDS */
+				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop); 
 				if (nitems <= 0) {
 					goto WOLFEN_XRANDR_INVALID_EDID;
 				}
@@ -161,7 +166,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 							strncpy(screen->make, token + 4, strlen(token) - 4);
 							screen->make[strlen(token)-1] = '\0';
 							screen->make_free_func = free;
-							printf("EDID Make: %s\n", screen->make);
+							printf("EDID Make: %s\n", screen->make); /* debug remove later */
 						}
 					} else {
 						break;
@@ -185,10 +190,10 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				}
 				screen->model[13] = '\0';
 				screen->model_free_func = free;
-				printf("EDID Model: %s\n", screen->model);
+				printf("EDID Model: %s\n", screen->model); /* debug remove later */
 			} else {
 				WOLFEN_XRANDR_INVALID_EDID:
-				screen->make = "";
+				screen->make = WOLFEN_SCREEN_MAKE_NAME;
 				screen->make_free_func = NULL;
 				screen->model = "";
 				screen->model_free_func = NULL;
@@ -283,14 +288,24 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			
 			XF86VidModeGetMonitor(wlonx->x_display, i, &vm_mon);
 			
-			screen->make = vm_mon.vendor;
-			screen->make_free_func = wolfen_xfree;
+			if (vm_mon.vendor) {
+				screen->make = vm_mon.vendor;
+				screen->make_free_func = wolfen_xfree;				
+				
+			} else {
+				screen->make = WOLFEN_SCREEN_MAKE_NAME;
+				screen->make_free_func = NULL;
+			}
+			if (vm_mon.model) {
+				screen->model = vm_mon.model;
+				screen->model_free_func = wolfen_xfree;		
+			} else {
+				screen->model = WOLFEN_SCREEN_MODEL_NAME;
+				screen->model_free_func = NULL;
+			}
 			
-			screen->model = vm_mon.model;
-			screen->model_free_func = wolfen_xfree;	
-			
-			screen->name = malloc(strlen(vm_mon.vendor) + 1 + strlen(vm_mon.model) + 2 + wolfen_digit_count(i) + 2);
-			sprintf(screen->name, "%s %s (%d)", vm_mon.vendor, vm_mon.model, i);
+			screen->name = malloc(strlen(screen->make) + 1 + strlen(screen->model) + 2 + wolfen_digit_count(i) + 2);
+			sprintf(screen->name, "%s %s (%d)", screen->make, screen->model, i);
 			screen->name_free_func = free;
 			
 			XFree(vm_mon.hsync);
@@ -303,9 +318,8 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			screen->make = WOLFEN_SCREEN_MAKE_NAME;
 			screen->make_free_func = NULL;
 			
-			screen->model = malloc(strlen(WOLFEN_SCREEN_MODEL_NAME)+wolfen_digit_count(i)+1);
-			sprintf(screen->model, WOLFEN_SCREEN_MODEL_NAME, i);
-			screen->model_free_func = free;			
+			screen->model = WOLFEN_SCREEN_MODEL_NAME;
+			screen->model_free_func = NULL;			
 		}
 
 		screen->screen_number = i;
