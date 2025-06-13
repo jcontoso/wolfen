@@ -103,8 +103,8 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	/* is there a way of getting the default monitor on xrandr? the header has nothing? */
 	first = NULL;
 	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
-	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));
-	
+	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));	
+
 	for (i = 0; i < screen_res->noutput; i++) {
 		XRROutputInfo *out_info;
 	
@@ -125,7 +125,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
-				
+			
 			edid_atom = XInternAtom(wlonx->x_display, RR_PROPERTY_RANDR_EDID, True);
 			if (edid_atom != None) {
 				unsigned char *prop;
@@ -138,7 +138,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				int j;
 				char *token;
 
-				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop);
+				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop); /* THIS HANGS ON NETBSD */
 				if (nitems <= 0) {
 					goto WOLFEN_XRANDR_INVALID_EDID;
 				}
@@ -148,7 +148,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 						goto WOLFEN_XRANDR_INVALID_EDID;
 					}
 				}	
-							
+					
 				edid_pnp_name[0] = (prop[8] >> 2 & 0x1f) + 'A' - 1;
 				edid_pnp_name[1] = (((prop[8] & 0x3) << 3) | ((prop[9] & 0xe0) >> 5)) + 'A' - 1;
 				edid_pnp_name[2] = (prop[9] & 0x1f) + 'A' - 1;
