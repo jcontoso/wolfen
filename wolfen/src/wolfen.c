@@ -22,6 +22,7 @@
 #include "wolfen-surface.h"
 #include "wolfen-compositor.h"
 #include "wolfen-shell.h"
+#include "wolfen-pnp-names.h"
 
 bool wolfen_screen_has_compositor(Display *display, int core_screen) {
 	char *atom_name;
@@ -111,6 +112,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	
 		if (out_info->connection == RR_Connected) {
 			XRRCrtcInfo *crtc_info;
+			Atom edid_atom;
 			WolfenScreen *screen;
 
 			crtc_info = XRRGetCrtcInfo(wlonx->x_display, screen_res, out_info->crtc);
@@ -123,13 +125,75 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
-			
-			/* grab edid and parse it ourselves to get these, see xrandr util src */
-			screen->make = "";
-			screen->make_free_func = NULL;
-			screen->model = "";
-			screen->model_free_func = NULL;
-	
+				
+			edid_atom = XInternAtom(wlonx->x_display, RR_PROPERTY_RANDR_EDID, True);
+			if (edid_atom != None) {
+				unsigned char *prop;
+				unsigned long nitems;
+				unsigned long bytes_after;
+				Atom act_atom;
+				int act_type;
+				char edid_pnp_name[4];
+				int c;
+				int j;
+				char *token;
+
+				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop);
+				if (nitems <= 0) {
+					goto WOLFEN_XRANDR_INVALID_EDID;
+				}
+		
+				for (c = 0; c < 8; i++) {
+					if (!(((c == 0 || c == 7) && prop[c] == 0x00) || (prop[c] == 0xff))) {
+						goto WOLFEN_XRANDR_INVALID_EDID;
+					}
+				}	
+							
+				edid_pnp_name[0] = (prop[8] >> 2 & 0x1f) + 'A' - 1;
+				edid_pnp_name[1] = (((prop[8] & 0x3) << 3) | ((prop[9] & 0xe0) >> 5)) + 'A' - 1;
+				edid_pnp_name[2] = (prop[9] & 0x1f) + 'A' - 1;
+				edid_pnp_name[3] = '|';
+				token = strtok(wolfen_pnp_names, "\n");
+				while (token) {
+					if (token[0] != '\n') {
+						if (!strncmp(token, edid_pnp_name, 4)) {
+							screen->make = malloc(strlen(token) - 3);
+							strncpy(screen->make, token + 4, strlen(token) - 4);
+							screen->make[strlen(token)-1] = '\0';
+							screen->make_free_func = free;
+							printf("EDID Make: %s\n", screen->make);
+						}
+					} else {
+						break;
+					}
+					token = strtok(NULL, "\n");			
+				}
+				
+				screen->model = malloc(14);
+				for (c = 0x36; c < 0x7E; c += 0x12) {
+					if (prop[c] == 0x00) { 
+						if (prop[c+3] == 0xfc) {
+							for (j = 0; j < 13; j++) {
+								if (prop[c+5+j] == 0x0a) {
+									screen->model[j] = 0x00;
+								} else {
+									screen->model[j] = prop[i+5+j];
+								}
+							}
+						}
+					}
+				}
+				screen->model[13] = '\0';
+				screen->model_free_func = free;
+				printf("EDID Model: %s\n", screen->model);
+			} else {
+				WOLFEN_XRANDR_INVALID_EDID:
+				screen->make = "";
+				screen->make_free_func = NULL;
+				screen->model = "";
+				screen->model_free_func = NULL;
+			}
+
 			screen->screen_number = i;
 			screen->x_org = crtc_info->x;
 			screen->y_org = crtc_info->y;
@@ -183,9 +247,9 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 					break;
 				default:
 					if (crtc_info->rotation & RR_Reflect_X || crtc_info->rotation & RR_Reflect_Y) {
-						screen->tf = WL_OUTPUT_TRANSFORM_NORMAL;
-					} else {
 						screen->tf = WL_OUTPUT_TRANSFORM_FLIPPED;					
+					} else {
+						screen->tf = WL_OUTPUT_TRANSFORM_NORMAL;
 					}
 			}
 															
@@ -362,7 +426,7 @@ void wlonx_display_destroy(WolfenDisplay *wlonx) {
 
 int main(int argc, char *argv[]) {
 	WolfenDisplay wlonx;
-	
+
 	babl_init();
 	wl_list_init(&wlonx.surfaces_list);
 	wl_list_init(&wlonx.shell_surfaces_list);
