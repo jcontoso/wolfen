@@ -68,6 +68,7 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 			first = screen;
 		}
 		screen->type = WOLFEN_SCREEN_TYPE_XINERAMA;
+		screen->display = wlonx;
 		
 		/* use vidmode to get information for the main screen? */
 		screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(xin_info[i].screen_number)*sizeof(char)+1);
@@ -119,6 +120,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			Atom edid_atom;
 
 			screen = malloc(sizeof(WolfenScreen));
+			screen->display = wlonx;
 			screen->type = WOLFEN_SCREEN_TYPE_XRANDR;
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
@@ -126,6 +128,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			if (!wlonx->x_screen_default)  {
 				if (screen_res->outputs[i] == default_output) {
 					wlonx->x_screen_default = screen;
+					puts("set defualt screen");
 				}
 			}
 			
