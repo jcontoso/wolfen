@@ -100,20 +100,23 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 
 void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	XRRScreenResources *screen_res;
+	WolfenScreen *first;
 	RROutput default_output;
 	int i;
 	bool is_compositing;
 	
+	first = NULL;
 	wlonx->x_screen_default = NULL;
 	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
 	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));	
 	default_output = XRRGetOutputPrimary(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));
+	printf("xrandr: default output is %d\n", default_output);
 	
 	for (i = 0; i < screen_res->noutput; i++) {
 		XRROutputInfo *out_info;
 	
 		out_info = XRRGetOutputInfo(wlonx->x_display, screen_res, screen_res->outputs[i]);	
-		
+		printf("xrandr: %d\n", screen_res->outputs[i]);
 		if (out_info->connection == RR_Connected) {
 			XRRCrtcInfo *crtc_info;
 			WolfenScreen *screen;
@@ -124,6 +127,10 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			screen->type = WOLFEN_SCREEN_TYPE_XRANDR;
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
+			
+			if (!first) {
+				first = screen;
+			}
 			
 			if (!wlonx->x_screen_default)  {
 				if (screen_res->outputs[i] == default_output) {
@@ -288,6 +295,9 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	}
 	
 	XRRFreeScreenResources(screen_res);
+	if (!wlonx->x_screen_default)  {
+		wlonx->x_screen_default = first;
+	}
 }
 
 void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
