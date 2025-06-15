@@ -391,9 +391,11 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	
 	/* setup screens */
 	if (wlonx->x_has_randr) {
+		puts("using xrandr for screen info");
 		wolfen_display_create_screens_xrandr(wlonx);
 	} else if (wlonx->x_has_xinerama) {
 		if (XineramaIsActive(wlonx->x_display)) {
+			puts("using xinerama for screen info");
 			xin_info = XineramaQueryScreens(wlonx->x_display, &xin_count);
 			if (xin_count > 1) {
 				wolfen_display_create_screens_xinerama(wlonx, xin_info, xin_count);
@@ -405,6 +407,7 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 		}
 	} else {
 		WOLFEN_DISPLAY_CREATE_SCREENS_CORE:
+		puts("using core for screen info");
 		wolfen_display_create_screens_core(wlonx);
 	}	
 }
