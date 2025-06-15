@@ -99,50 +99,65 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 
 void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	XRRScreenResources *screen_res;
-	WolfenScreen *first;
+	RROutput default_output;
 	int i;
 	bool is_compositing;
 	
-	/* is there a way of getting the default monitor on xrandr? the header has nothing? */
-	first = NULL;
+	wlonx->x_screen_default = NULL;
 	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
 	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));	
-
+	default_output = XRRGetOutputPrimary(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));
+	
 	for (i = 0; i < screen_res->noutput; i++) {
 		XRROutputInfo *out_info;
 	
 		out_info = XRRGetOutputInfo(wlonx->x_display, screen_res, screen_res->outputs[i]);	
-	
+		
 		if (out_info->connection == RR_Connected) {
 			XRRCrtcInfo *crtc_info;
-			Atom edid_atom;
 			WolfenScreen *screen;
-
-			crtc_info = XRRGetCrtcInfo(wlonx->x_display, screen_res, out_info->crtc);
+			Atom edid_atom;
 
 			screen = malloc(sizeof(WolfenScreen));
-			if (!first) {
-				first = screen;
-			}
 			screen->type = WOLFEN_SCREEN_TYPE_XRANDR;
-			
 			screen->name = strndup(out_info->name, out_info->nameLen);
 			screen->name_free_func = free;
 			
-			goto WOLFEN_XRANDR_INVALID_EDID; /* do not parse edids for now because XRRGetOutputProperty hangs */
-			edid_atom = XInternAtom(wlonx->x_display, RR_PROPERTY_RANDR_EDID, True);
+			if (!wlonx->x_screen_default)  {
+				if (screen_res->outputs[i] == default_output) {
+					wlonx->x_screen_default = screen;
+				}
+			}
+			
+			edid_atom = XInternAtom(wlonx->x_display, RR_PROPERTY_RANDR_EDID, False);
 			if (edid_atom != None) {
+				char *token;
+				Atom* out_props;
 				unsigned char *prop;
 				unsigned long nitems;
 				unsigned long bytes_after;
 				Atom act_atom;
 				int act_type;
 				char edid_pnp_name[4];
-				int c;
+				int out_props_sz;
 				int j;
-				char *token;
+				int c;
+				bool edid_yes;
 
-				/* THIS HANGS ON SYSTEMS WITH VALID EDIDS */
+				edid_yes = false;
+				out_props = XRRListOutputProperties(wlonx->x_display, screen_res->outputs[i], &out_props_sz);
+				for (c = 0; c < out_props_sz; ++c) {
+					if (out_props[i] == edid_atom) {
+						edid_yes = true;
+						printf("edid_yes %d\n", edid_yes);
+						break;
+					}
+				}
+				wolfen_xfree(out_props);
+				if (!edid_yes) {
+					goto WOLFEN_XRANDR_INVALID_EDID;
+				}
+				
 				XRRGetOutputProperty(wlonx->x_display, screen_res->outputs[i], edid_atom, 0, 128, False, False, AnyPropertyType, &act_atom, &act_type, &nitems, &bytes_after, &prop); 
 				if (nitems <= 0) {
 					goto WOLFEN_XRANDR_INVALID_EDID;
@@ -191,6 +206,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				screen->model[13] = '\0';
 				screen->model_free_func = free;
 				printf("EDID Model: %s\n", screen->model); /* debug remove later */
+				wolfen_xfree(prop);
 			} else {
 				WOLFEN_XRANDR_INVALID_EDID:
 				screen->make = WOLFEN_SCREEN_MAKE_NAME;
@@ -199,6 +215,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				screen->model_free_func = NULL;
 			}
 
+			crtc_info = XRRGetCrtcInfo(wlonx->x_display, screen_res, out_info->crtc);
 			screen->screen_number = i;
 			screen->x_org = crtc_info->x;
 			screen->y_org = crtc_info->y;
@@ -266,7 +283,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 		XRRFreeOutputInfo(out_info);
 	}
 	
-	wlonx->x_screen_default = first;
+	XRRFreeScreenResources(screen_res);
 }
 
 void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
