@@ -128,7 +128,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			if (!wlonx->x_screen_default)  {
 				if (screen_res->outputs[i] == default_output) {
 					wlonx->x_screen_default = screen;
-					puts("set defualt screen");
+					puts("xrandr: set default screen");
 				}
 			}
 			
@@ -158,6 +158,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				}
 				wolfen_xfree(out_props);
 				if (!edid_yes) {
+					puts("edid_no!");
 					goto WOLFEN_XRANDR_INVALID_EDID;
 				}
 				
@@ -299,6 +300,7 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 		
 		screen = malloc(sizeof(WolfenScreen));		
 		screen->type = WOLFEN_SCREEN_TYPE_CORE;
+		screen->display = wlonx;
 		if (i == DefaultScreen(wlonx->x_display)) {
 			default_screen = screen;
 		}
