@@ -415,7 +415,8 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 void wlonx_display_create_wl(WolfenDisplay *wlonx) {
 	wlonx->wl_display = wl_display_create();	
     printf("display: %s\n", wl_display_add_socket_auto(wlonx->wl_display));
-		
+	printf("default screen is now %p\n", wlonx->x_screen_default);
+	
 	wl_global_create(wlonx->wl_display, &wl_compositor_interface, wl_compositor_interface.version, wlonx, &wlonx_compositor_bind);
 	wl_global_create (wlonx->wl_display, &wl_shell_interface, wl_shell_interface.version, wlonx, &wolfen_wlshell_bind);
 	wl_display_init_shm(wlonx->wl_display);

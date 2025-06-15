@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <wayland-server.h>
@@ -150,7 +151,8 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	int ys /*scaled buffer y offset */;
 	
 	surface = (WolfenSurface *)wl_resource_get_user_data(res);
-	
+	printf("commit: default screen is now %p\n", surface->display->x_screen_default);
+
 	/* copy over state from buffer */
 	surface->state = surface->state_buffer;
 	surface->state_buffer.prop_changed = WOLFEN_SURFACE_PROP_CHANGED_NONE;	
