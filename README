@@ -1,5 +1,11 @@
 Wolfen/WLonX is a Wayland compositor that simply wraps X11.
 
+Interfaces that are implemented or being implemented:
+-wl_compositor.
+-wl_surface.
+-wl_shell.
+-wl_shm.
+
 Hard dependencies: 
 -Pixman, used for regions and buffer transforms (only if XRender is unavailable).
 -Babl, used for pixel format conversion.
