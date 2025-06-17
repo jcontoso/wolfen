@@ -12,4 +12,3 @@ Soft dependencies (these can be disabled both at run time and build time):
 -XRender, used for hardware accelerated buffer transformations.
 -Xinerama, used for getting screen information on legacy multi-monitor setups.
 -XFree86-VidMode, used for getting screen information on zaphod and legacy setups.
-
