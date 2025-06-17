@@ -2,6 +2,9 @@
 #include <stdbool.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#ifdef WOLFEN_HAS_XEXT
+#include <X11/extensions/XShm.h>
+#endif
 #include <wayland-server.h>
 #include <pixman.h>
 #include "wolfen-misc.h"
@@ -61,6 +64,9 @@ typedef struct _WolfenSurface {
 	
 			/* buffer */	
 			struct wl_shm_buffer *shm_buffer;
+			#ifdef WOLFEN_HAS_XEXT
+			XShmSegmentInfo shm_info;
+			#endif
 			XImage *x_img;
 			pixman_image_t *p_img; /* USED ONLY FOR BUFFER TFS ON NON XRENDER SETUPS */
 	

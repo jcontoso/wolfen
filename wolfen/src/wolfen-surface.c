@@ -2,9 +2,17 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#ifdef WOLFEN_HAS_XEXT
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#endif
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#ifdef WOLFEN_HAS_XEXT
+#include <X11/extensions/XShm.h>
+#endif
 #include <wayland-server.h>
 #include <pixman.h>
 #include "wolfen-misc.h"
@@ -33,8 +41,18 @@ void wolfen_surface_delete(struct wl_resource *res) {
 	}
 
 	if (surface->contents.img.x_img) {
-		surface->contents.img.x_img->data = NULL;
-		XDestroyImage(surface->contents.img.x_img);
+		#ifdef WOLFEN_HAS_XEXT
+		if (surface->display->x_has_shm) {
+			XShmDetach(surface->display->x_display, &surface->contents.img.shm_info);
+			XDestroyImage(surface->contents.img.x_img);
+			shmdt(surface->contents.img.shm_info.shmaddr);
+			shmctl(surface->contents.img.shm_info.shmid, IPC_RMID, 0);
+		} else 
+		#endif
+		{
+			surface->contents.img.x_img->data = NULL;
+			XDestroyImage(surface->contents.img.x_img);
+		}
 	}
 
 	if (surface->contents.img.p_img) {
@@ -151,7 +169,6 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	int ys /*scaled buffer y offset */;
 	
 	surface = (WolfenSurface *)wl_resource_get_user_data(res);
-	printf("commit: default screen is now %p\n", surface->display->x_screen_default);
 
 	/* copy over state from buffer */
 	surface->state = surface->state_buffer;
@@ -252,7 +269,20 @@ void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 				data_for_x = data_src;
 			}
 		
-			surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, data_for_x, w, h, 32, strid);
+			#ifdef WOLFEN_HAS_XEXT
+			if (surface->display->x_has_shm) {
+				surface->contents.img.x_img = XShmCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, NULL, &surface->contents.img.shm_info, w, h);
+				surface->contents.img.shm_info.shmid = shmget(IPC_PRIVATE, strid * h, 0777);
+				surface->contents.img.shm_info.shmaddr = surface->contents.img.x_img->data = (char*)shmat(surface->contents.img.shm_info.shmid, NULL, 0);
+				memcpy(surface->contents.img.shm_info.shmaddr, data_for_x, strid * h); /* hack, this defeats the whole fucking point */
+				surface->contents.img.shm_info.readOnly = True;
+				XShmAttach(surface->display->x_display, &surface->contents.img.shm_info);
+				shmctl(surface->contents.img.shm_info.shmid, IPC_RMID, 0);
+			} else 
+			#endif
+			{
+				surface->contents.img.x_img = XCreateImage(surface->display->x_display, surface->contents.img.fmt->xvi.visual, surface->contents.img.fmt->xvi.depth, ZPixmap, 0, data_for_x, w, h, 32, strid);
+			}
 			surface->contents.img.last_x_img_xvi = surface->contents.img.fmt->xvi;
 			surface->contents.img.last_x_img_xvi_mask = surface->contents.img.fmt->xvi_mask;
 		}

@@ -4,12 +4,10 @@ project(wolfen C)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
 include(GNUInstallDirs)
-option(TESTS "Build tests" TRUE)
 
 set(CMAKE_C_STANDARD 99)
 find_package(PkgConfig REQUIRED)
 
 add_subdirectory(wolfen)
-if(TESTS)
-	add_subdirectory(wolfen-test)
-endif()
+add_subdirectory(wolfen-test)
+

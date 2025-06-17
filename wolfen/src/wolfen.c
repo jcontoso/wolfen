@@ -5,14 +5,24 @@
 #include <stdbool.h>
 #include <math.h>
 #include <limits.h>
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#ifdef WOLFEN_HAS_XRENDER
 #include <X11/extensions/Xrender.h>
+#endif
+#ifdef WOLFEN_HAS_XRANDR
 #include <X11/extensions/Xrandr.h>
+#endif
+#ifdef WOLFEN_HAS_XINERAMA
 #include <X11/extensions/Xinerama.h>
+#endif
+#ifdef WOLFEN_HAS_XVIDMODE
 #include <X11/extensions/xf86vmode.h>
+#endif
+#ifdef WOLFEN_HAS_XEXT
 #include <X11/extensions/shape.h>
+#include <X11/extensions/XShm.h>
+#endif
 #include <wayland-server.h>
 #include <babl/babl.h>
 
@@ -51,6 +61,7 @@ int wolfen_screen_get_core_screen(WolfenScreen *screen) {
 	}		
 }
 
+#ifdef WOLFEN_HAS_XINERAMA
 void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreenInfo *xin_info, int xin_count) {
 	WolfenScreen *first;
 	int i;
@@ -97,7 +108,9 @@ void wolfen_display_create_screens_xinerama(WolfenDisplay *wlonx, XineramaScreen
 	}
 	wlonx->x_screen_default = first;
 }
+#endif
 
+#ifdef WOLFEN_HAS_XRANDR
 void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	XRRScreenResources *screen_res;
 	WolfenScreen *first;
@@ -110,13 +123,11 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 	is_compositing = wolfen_screen_has_compositor(wlonx->x_display, DefaultScreen(wlonx->x_display));
 	screen_res = XRRGetScreenResources(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));	
 	default_output = XRRGetOutputPrimary(wlonx->x_display, RootWindow(wlonx->x_display, DefaultScreen(wlonx->x_display)));
-	printf("xrandr: default output is %d\n", default_output);
 	
 	for (i = 0; i < screen_res->noutput; i++) {
 		XRROutputInfo *out_info;
 	
 		out_info = XRRGetOutputInfo(wlonx->x_display, screen_res, screen_res->outputs[i]);	
-		printf("xrandr: %d\n", screen_res->outputs[i]);
 		if (out_info->connection == RR_Connected) {
 			XRRCrtcInfo *crtc_info;
 			WolfenScreen *screen;
@@ -135,7 +146,6 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 			if (!wlonx->x_screen_default)  {
 				if (screen_res->outputs[i] == default_output) {
 					wlonx->x_screen_default = screen;
-					puts("xrandr: set default screen");
 				}
 			}
 			
@@ -159,13 +169,11 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				for (c = 0; c < out_props_sz; ++c) {
 					if (out_props[i] == edid_atom) {
 						edid_yes = true;
-						printf("edid_yes %d\n", edid_yes);
 						break;
 					}
 				}
 				wolfen_xfree(out_props);
 				if (!edid_yes) {
-					puts("edid_no!");
 					goto WOLFEN_XRANDR_INVALID_EDID;
 				}
 				
@@ -299,6 +307,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 		wlonx->x_screen_default = first;
 	}
 }
+#endif
 
 void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 	WolfenScreen *default_screen;
@@ -315,6 +324,7 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			default_screen = screen;
 		}
 		
+		#ifdef WOLFEN_HAS_XVIDMODE
 		if (wlonx->x_has_vidmode) {
 			XF86VidModeMonitor vm_mon;
 			
@@ -342,7 +352,9 @@ void wolfen_display_create_screens_core(WolfenDisplay *wlonx) {
 			
 			wolfen_xfree(vm_mon.hsync);
 			wolfen_xfree(vm_mon.vsync);		
-		} else {
+		} else
+		#endif
+		{
 			screen->name = malloc(strlen(WOLFEN_SCREEN_NAME)+wolfen_digit_count(i)*sizeof(char)+1);
 			sprintf(screen->name, WOLFEN_SCREEN_NAME, i);
 			screen->name_free_func = free;
@@ -385,27 +397,43 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	wlonx->x_display = XOpenDisplay(NULL);
 	XSynchronize(wlonx->x_display, True); /* debug remove this later */
 
+	#ifdef WOLFEN_HAS_XRANDR
 	/* used for monitor info in most setups */
 	wlonx->x_has_randr = XRRQueryExtension(wlonx->x_display, &event_base, &error_base);
+	#endif
+	
+	#ifdef WOLFEN_HAS_XINERAMA
 	/* used for multimonitor in non-xrandr setups */
 	wlonx->x_has_xinerama = XineramaQueryExtension(wlonx->x_display, &event_base, &error_base);
+	#endif
+	
+	#ifdef WOLFEN_HAS_XVIDMODE
 	/* used for getting monitor information in non-xrandr and zaphod configurations */
 	wlonx->x_has_vidmode = XF86VidModeQueryExtension(wlonx->x_display, &event_base, &error_base);
-
+	#endif
+	
+	#ifdef WOLFEN_HAS_XRENDER
 	/* used for hw accelerated buffer tfs */
 	wlonx->x_has_render = XRenderQueryExtension(wlonx->x_display, &event_base, &error_base);
 	wlonx->x_has_render = false; /* for development, no xrender functionality has been implemented yet */
-	
+	#endif
+
+	#ifdef WOLFEN_HAS_XEXT
 	/* used for "transparency" if you have no compositor running */
 	wlonx->x_has_shape = XShapeQueryExtension(wlonx->x_display, &event_base, &error_base); 
-	
+	wlonx->x_has_shm  = XShmQueryExtension(wlonx->x_display);
+	#endif
+
 	/* setup screens */
 	if (wlonx->x_has_randr) {
-		puts("using xrandr for screen info");
+		#ifdef WOLFEN_HAS_XRANDR
 		wolfen_display_create_screens_xrandr(wlonx);
+		#else
+		goto WOLFEN_DISPLAY_CREATE_SCREENS_CORE
+		#endif
 	} else if (wlonx->x_has_xinerama) {
+		#ifdef WOLFEN_HAS_XINERAMA
 		if (XineramaIsActive(wlonx->x_display)) {
-			puts("using xinerama for screen info");
 			xin_info = XineramaQueryScreens(wlonx->x_display, &xin_count);
 			if (xin_count > 1) {
 				wolfen_display_create_screens_xinerama(wlonx, xin_info, xin_count);
@@ -415,9 +443,11 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 				goto WOLFEN_DISPLAY_CREATE_SCREENS_CORE;
 			}
 		}
+		#else
+		goto WOLFEN_DISPLAY_CREATE_SCREENS_CORE
+		#endif
 	} else {
 		WOLFEN_DISPLAY_CREATE_SCREENS_CORE:
-		puts("using core for screen info");
 		wolfen_display_create_screens_core(wlonx);
 	}	
 }
@@ -425,7 +455,6 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 void wlonx_display_create_wl(WolfenDisplay *wlonx) {
 	wlonx->wl_display = wl_display_create();	
     printf("display: %s\n", wl_display_add_socket_auto(wlonx->wl_display));
-	printf("default screen is now %p\n", wlonx->x_screen_default);
 	
 	wl_global_create(wlonx->wl_display, &wl_compositor_interface, wl_compositor_interface.version, wlonx, &wlonx_compositor_bind);
 	wl_global_create (wlonx->wl_display, &wl_shell_interface, wl_shell_interface.version, wlonx, &wolfen_wlshell_bind);

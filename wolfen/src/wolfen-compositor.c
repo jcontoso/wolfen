@@ -17,7 +17,6 @@ void wlonx_compositor_create_surface(struct wl_client *client, struct wl_resourc
 	/* alloc and set display */
 	surface = malloc(sizeof(WolfenSurface));
 	surface->display = wl_resource_get_user_data(resource);
-	printf("comp: default screen is now %p\n", surface->display->x_screen_default);
 	
 	/* state setup */
 	memset(&surface->state, 0, sizeof(WolfenSurfaceState));

@@ -6,6 +6,9 @@
 #include <X11/Xlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#ifdef WOLFEN_HAS_XEXT
+#include <X11/extensions/XShm.h>
+#endif
 #include <wayland-server.h>
 #include "wolfen-misc.h"
 #include "wolfen-display.h"
@@ -72,8 +75,17 @@ void *thread_func(void *ptr) {
 	
 	shsurface = (WolfenShellSurface *)ptr;
 	for (;;) {
-		XPutImage(shsurface->display->x_display, shsurface->x_window, shsurface->x_gc, shsurface->surface->contents.img.x_img, 0, 0, shsurface->extents->x1, shsurface->extents->y1, shsurface->extents->x2 - shsurface->extents->x1, shsurface->extents->y2 - shsurface->extents->y1);
+		wl_shm_buffer_begin_access(shsurface->surface->contents.img.shm_buffer);
+		#ifdef WOLFEN_HAS_XEXT
+		if (shsurface->display->x_has_shm) {
+			XShmPutImage(shsurface->display->x_display, shsurface->x_window, shsurface->x_gc, shsurface->surface->contents.img.x_img, 0, 0, shsurface->extents->x1, shsurface->extents->y1, shsurface->extents->x2 - shsurface->extents->x1, shsurface->extents->y2 - shsurface->extents->y1, True);
+		} else 
+		#endif
+		{
+			XPutImage(shsurface->display->x_display, shsurface->x_window, shsurface->x_gc, shsurface->surface->contents.img.x_img, 0, 0, shsurface->extents->x1, shsurface->extents->y1, shsurface->extents->x2 - shsurface->extents->x1, shsurface->extents->y2 - shsurface->extents->y1);
+		}
 		XFlush(shsurface->display->x_display);
+		wl_shm_buffer_end_access(shsurface->surface->contents.img.shm_buffer);
 	}
 	return ptr;
 }
