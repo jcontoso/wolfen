@@ -1,1 +1,15 @@
 Wolfen/WLonX is a Wayland compositor that simply wraps X11.
+
+Hard dependencies: 
+-Pixman, used for regions and buffer transforms (only if XRender is unavailable).
+-Babl, used for pixel format conversion.
+-Wayland-server, for obvious reasons.
+-Xlib, for obvious reasons.
+
+Soft dependencies (these can be disabled both at run time and build time): 
+-Xext, used for shared memory and transparency if you have no compositor.
+-Xrandr, used for getting screen information on most systems.
+-XRender, used for hardware accelerated buffer transformations.
+-Xinerama, used for getting screen information on legacy multi-monitor setups.
+-XFree86-VidMode, used for getting screen information on zaphod and legacy setups.
+
