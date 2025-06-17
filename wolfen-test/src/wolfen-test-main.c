@@ -25,6 +25,7 @@ int wolfen_test_ask_for_int(char *message) {
 		while ((a = getchar()) != '\n' && a != EOF) { }
 		printf("\nInvalid!\n");
 		wolfen_test_ask_for_int(message);
+		return 0;
 	} else {
 		return i;
 	}
@@ -43,6 +44,7 @@ bool wolfen_test_ask_for_bool(char *message) {
 		while ((a = getchar()) != '\n' && a != EOF) { }
 		printf("\nInvalid!\n");
 		wolfen_test_ask_for_bool(message);
+		return false;
 	} else {
 		if (i == 'Y' || i == 'y') {
 			return true;

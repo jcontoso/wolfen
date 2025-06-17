@@ -134,7 +134,7 @@ void wolfen_surface_set_buffer_scale(struct wl_client *client, struct wl_resourc
 }
 
 int fake_destroy() {
-	
+	return 0;
 }
 
 
@@ -161,6 +161,7 @@ Pixmap wolfen_surface_generate_bitmap_from_alpha_of_image(WolfenSurface *surface
 	/*XCreateBitmapFromData*/
 	wl_shm_buffer_end_access(shm_buffer);
 	#endif
+	return 0;
 }
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {

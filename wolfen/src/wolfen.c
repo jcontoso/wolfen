@@ -192,7 +192,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				edid_pnp_name[1] = (((prop[8] & 0x3) << 3) | ((prop[9] & 0xe0) >> 5)) + 'A' - 1;
 				edid_pnp_name[2] = (prop[9] & 0x1f) + 'A' - 1;
 				edid_pnp_name[3] = '|';
-				token = strtok(wolfen_pnp_names, "\n");
+				token = strtok((char *)wolfen_pnp_names, "\n");
 				while (token) {
 					if (token[0] != '\n') {
 						if (!strncmp(token, edid_pnp_name, 4)) {
