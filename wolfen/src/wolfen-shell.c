@@ -132,7 +132,6 @@ void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
 		if (shsurface->display->x_has_shm && !shsurface->display->x_screen_default->is_compositing) {
 			WolfenSurfaceMask *mask;
 			
-			puts("hi");
 			mask = wolfen_surface_mask_generate(shsurface->surface, shsurface->x_window);
 			XShapeCombineMask(shsurface->display->x_display, shsurface->x_window, ShapeBounding, 0, 0, mask->mask, ShapeSet);
 		} 
