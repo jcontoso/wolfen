@@ -2,12 +2,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <X11/Xlib.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #ifdef WOLFEN_HAS_XEXT
 #include <X11/extensions/XShm.h>
+#include <X11/extensions/shape.h>
 #endif
 #include <wayland-server.h>
 #include "wolfen-misc.h"
@@ -124,11 +126,19 @@ void wolfen_wlshell_surface_create_x11(WolfenShellSurface *shsurface) {
 		XChangeProperty(shsurface->display->x_display, shsurface->x_window,property,property,32,PropModeReplace,(unsigned char *)&hints,5);
 		XMapWindow(shsurface->display->x_display, shsurface->x_window);
 		XSetWMNormalHints(shsurface->display->x_display, shsurface->x_window, &sh);
+		shsurface->type = WOLFEN_SHELL_SURFACE_TYPE_JUST_CREATED;
 		shsurface->surface->contents.img.use_last_x_img_xvi = true;
+		#ifdef WOLFEN_HAS_XEXT
+		if (shsurface->display->x_has_shm && !shsurface->display->x_screen_default->is_compositing) {
+			WolfenSurfaceMask *mask;
+			
+			puts("hi");
+			mask = wolfen_surface_mask_generate(shsurface->surface, shsurface->x_window);
+			XShapeCombineMask(shsurface->display->x_display, shsurface->x_window, ShapeBounding, 0, 0, mask->mask, ShapeSet);
+		} 
+		#endif
 		/* HORRIBLE HACK USED FOR DEMO PURPOSES, WILL NOT BE USED WHEN I GET IMPLEMENT EVENTS */
 		pthread_create(&thread, NULL, thread_func, shsurface);
-
-		shsurface->type = WOLFEN_SHELL_SURFACE_TYPE_JUST_CREATED;
 	}
 }
 

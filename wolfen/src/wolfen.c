@@ -400,11 +400,15 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	#ifdef WOLFEN_HAS_XRANDR
 	/* used for monitor info in most setups */
 	wlonx->x_has_randr = XRRQueryExtension(wlonx->x_display, &event_base, &error_base);
+	#else
+	wlonx->x_has_randr = false;
 	#endif
 	
 	#ifdef WOLFEN_HAS_XINERAMA
 	/* used for multimonitor in non-xrandr setups */
 	wlonx->x_has_xinerama = XineramaQueryExtension(wlonx->x_display, &event_base, &error_base);
+	#else
+	wlonx->x_has_xinerama = false;
 	#endif
 	
 	#ifdef WOLFEN_HAS_XVIDMODE

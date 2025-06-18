@@ -138,31 +138,50 @@ int fake_destroy() {
 }
 
 
-Pixmap wolfen_surface_generate_bitmap_from_alpha_of_image(WolfenSurface *surface) {
-	#if 0
-	Pixmap ret;
-	char *data;
-	int size;
+#ifdef WOLFEN_HAS_XEXT
+WolfenSurfaceMask *wolfen_surface_mask_generate(WolfenSurface *surface, Drawable drawable) {
+	WolfenSurfaceMask *ret;
 	int x;
 	int y;	
 	int c;	
-	mask = malloc(sizeof(WolfenSurfaceMask));
-	size = (surface->contents.img.x_img->width + surface->contents.img.x_img->height + 7) & (-8);
-	mask->data = calloc(size, sizeof(data));
+	int s;
 	
+	c = 0;
+	s = 0;
+	ret = malloc(sizeof(WolfenSurfaceMask));
+	ret->for_surface = surface;
+	ret->data = calloc(surface->contents.img.x_img->width + surface->contents.img.x_img->height / 8, sizeof(char));
+
 	wl_shm_buffer_begin_access(surface->contents.img.shm_buffer);
-	for (y = 0; y < surface->contents.img.x_img->height; ++y) {		
-		for (x = 0; x < surface->contents.img.x_img->width; ++x) {
-			if (((surface->contents.img.x_img->data[x * surface->contents.img.x_img->width + y]  >> 32) & 0xFF) > 0) {
-				puts("yes");
+	for (y = 0; y < surface->contents.img.x_img->height; y++) {		
+		for (x = 0; x < surface->contents.img.x_img->width; x++) {
+			int pixel;	
+
+			if (c >= 8) {
+				c = 0;
+				s++;
+			}	
+		
+			pixel = ((((uint32_t *)surface->contents.img.x_img->data)[x * surface->contents.img.x_img->width + y] >> 24) & 0xFF);
+			if (pixel > 0) {
+				ret->data[s] |= 1 << c;
 			}
+			
+			c++;
 		}	
-    }
-	/*XCreateBitmapFromData*/
-	wl_shm_buffer_end_access(shm_buffer);
-	#endif
-	return 0;
+	}
+	  
+	ret->mask = XCreateBitmapFromData(surface->display->x_display, drawable, ret->data, surface->contents.img.x_img->width, surface->contents.img.x_img->height);
+	wl_shm_buffer_end_access(surface->contents.img.shm_buffer);
+	return ret;
 }
+
+void wolfen_surface_mask_free(WolfenSurfaceMask *mask) {
+	XFreePixmap(mask->for_surface->display->x_display, mask->mask);
+	free(mask->data);
+	free(mask);
+}
+#endif
 
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res) {
 	WolfenSurface *surface;

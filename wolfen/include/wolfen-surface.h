@@ -83,6 +83,14 @@ typedef struct _WolfenSurface {
 	struct wl_list link;
 } WolfenSurface;
 
+#ifdef WOLFEN_HAS_XEXT
+typedef struct {
+	WolfenSurface *for_surface;
+	Pixmap mask;
+	char *data;
+} WolfenSurfaceMask;
+#endif
+
 void wolfen_surface_delete(struct wl_resource *resource);
 void wolfen_surface_destroy(struct wl_client *client, struct wl_resource *res);
 void wolfen_surface_attach(struct wl_client *client, struct wl_resource *res, struct wl_resource *buffer, int32_t x, int32_t y);
@@ -95,5 +103,10 @@ void wolfen_surface_set_buffer_scale(struct wl_client *client, struct wl_resourc
 void wolfen_surface_commit(struct wl_client *client, struct wl_resource *res);
 void wolfen_surface_damage_buffer(struct wl_client *client, struct wl_resource *res, int32_t x, int32_t y, int32_t width,int32_t height);
 void wolfen_surface_offset(struct wl_client *client, struct wl_resource *res, int32_t x, int32_t y);
+
+#ifdef WOLFEN_HAS_XEXT
+WolfenSurfaceMask *wolfen_surface_mask_generate(WolfenSurface *surface, Drawable drawable);
+void wolfen_surface_mask_free(WolfenSurfaceMask *mask);
+#endif
 
 #endif
