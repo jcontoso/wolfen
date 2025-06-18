@@ -137,7 +137,6 @@ int fake_destroy() {
 	return 0;
 }
 
-
 #ifdef WOLFEN_HAS_XEXT
 WolfenSurfaceMask *wolfen_surface_mask_generate(WolfenSurface *surface, Drawable drawable) {
 	WolfenSurfaceMask *ret;
@@ -150,7 +149,7 @@ WolfenSurfaceMask *wolfen_surface_mask_generate(WolfenSurface *surface, Drawable
 	s = 0;
 	ret = malloc(sizeof(WolfenSurfaceMask));
 	ret->for_surface = surface;
-	ret->data = calloc(surface->contents.img.x_img->width + surface->contents.img.x_img->height / 8, sizeof(char));
+	ret->data = calloc(surface->contents.img.x_img->width * surface->contents.img.x_img->height / 8, sizeof(char));
 
 	wl_shm_buffer_begin_access(surface->contents.img.shm_buffer);
 	for (y = 0; y < surface->contents.img.x_img->height; y++) {		
