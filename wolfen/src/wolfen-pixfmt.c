@@ -31,10 +31,9 @@ long wolfen_wlfmt2xvi_strict(uint32_t format, XVisualInfo *xvi, int core_screen)
 			xvi->bits_per_rgb = 8;
 			break;
 		case WL_SHM_FORMAT_XRGB8888:
-			/* how do 24bit visuals work? is it stored as a 32bit int with padding or as 3 8bit ints? */
 			xvi_flags = VisualClassMask | VisualDepthMask | VisualRedMaskMask | VisualGreenMaskMask	| VisualBitsPerRGBMask | VisualBlueMaskMask | VisualScreenMask;
 			xvi->class = TrueColor;
-			xvi->depth = 24; 
+			xvi->depth = 32; 
 			xvi->red_mask = 16711680;
 			xvi->green_mask = 65280;
 			xvi->blue_mask = 255;
@@ -53,6 +52,7 @@ long wolfen_wlfmt2xvi_loose(uint32_t format, XVisualInfo *xvi, bool even_looser,
 	xvi_flags = VisualScreenMask;
 	xvi->screen = core_screen;
 	switch (format) {
+		case WL_SHM_FORMAT_XRGB8888:
 		case WL_SHM_FORMAT_ARGB8888:
 			xvi_flags = VisualClassMask | VisualDepthMask;
 			xvi->screen = core_screen;
@@ -62,11 +62,6 @@ long wolfen_wlfmt2xvi_loose(uint32_t format, XVisualInfo *xvi, bool even_looser,
 			} else {
 				xvi->depth = 24; 
 			}
-			break;
-		case WL_SHM_FORMAT_XRGB8888:
-			xvi_flags = VisualClassMask | VisualDepthMask;
-			xvi->class = TrueColor;
-			xvi->depth = 24 /*24?*/; 
 			break;
 		default:
 			puts("unsupported format");

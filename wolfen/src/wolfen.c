@@ -32,7 +32,7 @@
 #include "wolfen-surface.h"
 #include "wolfen-compositor.h"
 #include "wolfen-shell.h"
-#include "wolfen-pnp-names.h"
+#include "wolfen-pnp-ids.h"
 
 #define WOLFEN_SCREEN_NAME "WLonX/Wolfen Screen %d"
 #define WOLFEN_SCREEN_MAKE_NAME "WLonX/Wolfen"
@@ -158,7 +158,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				unsigned long bytes_after;
 				Atom act_atom;
 				int act_type;
-				char edid_pnp_name[4];
+				char edid_pnp_name[3];
 				int out_props_sz;
 				int j;
 				int c;
@@ -182,7 +182,7 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 					goto WOLFEN_XRANDR_INVALID_EDID;
 				}
 		
-				for (c = 0; c < 8; i++) {
+				for (c = 0; c < 8; c++) {
 					if (!(((c == 0 || c == 7) && prop[c] == 0x00) || (prop[c] == 0xff))) {
 						goto WOLFEN_XRANDR_INVALID_EDID;
 					}
@@ -191,14 +191,11 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				edid_pnp_name[0] = (prop[8] >> 2 & 0x1f) + 'A' - 1;
 				edid_pnp_name[1] = (((prop[8] & 0x3) << 3) | ((prop[9] & 0xe0) >> 5)) + 'A' - 1;
 				edid_pnp_name[2] = (prop[9] & 0x1f) + 'A' - 1;
-				edid_pnp_name[3] = '|';
-				token = strtok((char *)wolfen_pnp_names, "\n");
+				token = strtok((char *)wolfen_pnp_ids, "\n");
 				while (token) {
 					if (token[0] != '\n') {
-						if (!strncmp(token, edid_pnp_name, 4)) {
-							screen->make = malloc(strlen(token) - 3);
-							strncpy(screen->make, token + 4, strlen(token) - 4);
-							screen->make[strlen(token)-1] = '\0';
+						if (!strncmp(token, edid_pnp_name, 3)) {
+							screen->make = strdup(token + 4);
 							screen->make_free_func = free;
 							printf("EDID Make: %s\n", screen->make); /* debug remove later */
 						}
