@@ -208,12 +208,12 @@ void wolfen_display_create_screens_xrandr(WolfenDisplay *wlonx) {
 				screen->model = malloc(14);
 				for (c = 0x36; c < 0x7E; c += 0x12) {
 					if (prop[c] == 0x00) { 
-						if (prop[c+3] == 0xfc) {
+						if (prop[c+3] == 0xfe || prop[c+3] == 0xfc) {
 							for (j = 0; j < 13; j++) {
 								if (prop[c+5+j] == 0x0a) {
 									screen->model[j] = 0x00;
 								} else {
-									screen->model[j] = prop[i+5+j];
+									screen->model[j] = prop[c+5+j];
 								}
 							}
 						}
