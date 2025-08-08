@@ -24,7 +24,7 @@ typedef struct {
 	char *model;
 	void (*model_free_func)(void *p); /* DO NOT EXECUTE IF NULL */
 	
-	int screen_number; /* multi monitor mode dependent */
+	int screen_number;
 	int x_org;
 	int y_org;
 	int width;

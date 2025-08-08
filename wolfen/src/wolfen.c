@@ -422,6 +422,7 @@ void wlonx_display_create_x11(WolfenDisplay *wlonx) {
 	#ifdef WOLFEN_HAS_XEXT
 	/* used for "transparency" if you have no compositor running */
 	wlonx->x_has_shape = XShapeQueryExtension(wlonx->x_display, &event_base, &error_base); 
+	/* shared memory */
 	wlonx->x_has_shm  = XShmQueryExtension(wlonx->x_display);
 	#endif
 
